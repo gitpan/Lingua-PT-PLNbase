@@ -1,5 +1,8 @@
 Revision history for Perl extension Lingua::PT::PLNbase.
 
+0.06  Tue Oct  5 12:00:00 2004
+	- finally, corrected the tests. Sorry for the inconvenience.
+
 0.05  Mon Oct  4 09:33:33 2004
 	- corrected tests skip in case of weird locale.
 
