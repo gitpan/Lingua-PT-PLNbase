@@ -1,5 +1,8 @@
 Revision history for Perl extension Lingua::PT::PLNbase.
 
+0.02  Tue May 18 21:32:33 2004
+	- changed module description for CPAN
+
 0.01  Mon Mar 29 14:11:52 2004
 	- original version; created by h2xs 1.23 with options
 		-X -O -b5.6.0 -n Lingua::PT::PLNbase

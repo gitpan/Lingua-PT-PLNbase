@@ -17,7 +17,7 @@ our %EXPORT_TAGS = ( 'all' => [ qw() ] );
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
 our @EXPORT = qw(atomiza sentences separa_frases fsentences);
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 
 
@@ -905,7 +905,7 @@ __END__
 
 =head1 NAME
 
-Lingua::PT::PLNbase - Perl extension for blah blah blah
+Lingua::PT::PLNbase - Perl extension for NLP of the Portuguese
 
 =head1 SYNOPSIS
 
