@@ -1,6 +1,6 @@
 # -*- cperl -*-
 
-use Test::More tests => 1 + 2;
+use Test::More tests => 1 + 4;
 
 use locale;
 
@@ -23,4 +23,18 @@ SKIP: {
 	      output=>'foo'},"t/ftext1");
   is(`diff foo t/ftext1.out2`,"");
   unlink "foo";
+
+
+  fsentences({o_format => 'NATools',
+	      output=>'foo'},"t/ftext1");
+  is(`diff foo t/ftext1.out3`,"");
+  unlink "foo";
+
+
+  fsentences({o_format => 'NATools',
+	      tokenize => 1,
+	      output=>'foo'},"t/ftext1");
+  is(`diff foo t/ftext1.out4`,"");
+  unlink "foo";
+
 }

@@ -13,7 +13,7 @@ use locale;
 
 
 our @EXPORT = qw(atomiza frases separa_frases fsentences tokeniza has_accents remove_accents);
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 our $abrev;
 
@@ -774,6 +774,8 @@ sub fsentences {
 	      t_num    => 'f',
 	      t_last   => '',
 
+	      tokenize => 0,
+
 	      output   => \*STDOUT,
 	      input_p_sep => '',
 	     );
@@ -828,7 +830,12 @@ sub fsentences {
 sub _clean {
   my $opts = shift;
   my $str = shift;
-  $str =~ s/\s+/ /g;
+
+  if ($opts->{tokenize}) {
+    $str = join(" ", atomiza($str))
+  } else {
+    $str =~ s/\s+/ /g;
+  }
   return $str;
 }
 
@@ -852,6 +859,7 @@ sub _open_t_tag {
       return "<$opts->{t_tag} id=\"$opts->{t_last}\">\n";
     }
   }
+  return "" if ($opts->{o_format} eq "NATools");
 }
 
 sub _close_t_tag {
@@ -859,8 +867,9 @@ sub _close_t_tag {
   my $file = shift || "";
   if ($opts->{o_format} eq "XML" &&
       $opts->{t_tag}) {
-      return "</$opts->{t_tag}>\n";
-    }
+    return "</$opts->{t_tag}>\n";
+  }
+  return "" if ($opts->{o_format} eq "NATools");
 }
 
 sub _open_p_tag {
@@ -881,6 +890,7 @@ sub _open_p_tag {
       return "<$opts->{p_tag} id=\"$opts->{t_last}.$opts->{p_last}\">\n";
     }
   }
+  return "" if ($opts->{o_format} eq "NATools");
 }
 
 sub _close_p_tag {
@@ -888,8 +898,9 @@ sub _close_p_tag {
   my $file = shift || "";
   if ($opts->{o_format} eq "XML" &&
       $opts->{p_tag}) {
-      return "</$opts->{p_tag}>\n";
-    }
+    return "</$opts->{p_tag}>\n";
+  }
+  return "" if ($opts->{o_format} eq "NATools");
 }
 
 
@@ -914,6 +925,7 @@ sub _open_s_tag {
       return "<$opts->{s_tag} id=\"$opts->{t_last}.$opts->{p_last}.$opts->{s_last}\">";
     }
   }
+  return "" if ($opts->{o_format} eq "NATools");
 }
 
 sub _close_s_tag {
@@ -921,8 +933,9 @@ sub _close_s_tag {
   my $file = shift || "";
   if ($opts->{o_format} eq "XML" &&
       $opts->{s_tag}) {
-      return "</$opts->{s_tag}>\n";
-    }
+    return "</$opts->{s_tag}>\n";
+  }
+  return "\n\$\n" if ($opts->{o_format} eq "NATools");
 }
 
 

@@ -1,5 +1,8 @@
 Revision history for Perl extension Lingua::PT::PLNbase.
 
+0.10  Wed Mar 16 16:00:00 2005
+	- fsentence supports tokenization and NATools output format;
+
 0.09  Thu Nov 11  9:21:00 2004
 	- Added some features to segmenter;
 

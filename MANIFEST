@@ -19,3 +19,5 @@ t/accents.t
 t/tokenizer3.t
 t/tok3.abr
 t/tests3.tok
+t/ftext1.out3
+t/ftext1.out4
