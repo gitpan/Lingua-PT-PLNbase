@@ -1,0 +1,31 @@
+#!/usr/bin/perl -s
+
+use strict;
+use warnings;
+
+use Lingua::PT::PLNbase;
+
+our ($h, $help, $nat, $tokenize, $o);
+
+if ($h || $help) {
+  print_usage();
+  exit;
+}
+
+my $opt = {};
+
+$opt->{o_format} = 'NATools' if $nat;
+$opt->{tokenize} = 1 if $tokenize;
+$opt->{output} = $o if $o;
+
+fsentences($opt,@ARGV);
+
+
+
+sub print_usage {
+  print "sentences -h/-help   -- This help screen\n";
+  print "sentences [-tokenize] [-nat] file...\n";
+  print "\t-tokenize: tokenize sentences\n";
+  print "\t-nat: output format suitable for NATools\n";
+  print "\t-o=<file>: output to a specific file\n";
+}
