@@ -2,48 +2,27 @@ package Lingua::PT::PLNbase;
 
 use 5.006;
 use strict;
-
 use warnings;
+use Data::Dumper;
+use Lingua::PT::Abbrev;
 
 require Exporter;
-use AutoLoader qw(AUTOLOAD);
+our @ISA = qw(Exporter);
 
 use locale;
 
-our @ISA = qw(Exporter);
-
-our %EXPORT_TAGS = ( 'all' => [ qw() ] );
-
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
 our @EXPORT = qw(atomiza frases separa_frases fsentences tokeniza has_accents remove_accents);
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
+our $abrev;
 
-
-our %abrev = (
-	      dr     => "doutor",
-	      dra    => "doutora",
-	      drs    => "doutores",
-	      dras   => "doutoras",
-	      etc    => "etc.",
-	      prof   => "professor",
-	      profa  => "professora",
-	      profs  => "professores",
-	      profas => "professoras",
-	      'séc'  => "século",
-	      av     => "avenida",
-	     );
-
-our $abrev = join '|', qw(srt?a?s? dra?s? etc exa? jr profa?s? arq av estr? pe lgo? 
-			  séc exm(?:a|o)s? cel sen cia lda t(ra?)?v
-			  et al vol no eng tv pr Oliv ig mrs? min rep );
 our $protect = '
        \#n\d+
     |  \w+\'\w+
     |  [\w_.-]+ \@ [\w_.-]+\w                    # emails
     |  \w+\.[ºª]                                 # ordinals
-    |  <[^>]*>                                   # marcup XML SGML
+    |  <[^>]*>                                   # markup XML SGML
     |  \d+(?:\.\d+)+                             # numbers
     |  \d+\:\d+                                  # the time
     |  ((https?|ftp|gopher)://|www)[\w_./~-]+\w  # urls
@@ -52,6 +31,24 @@ our $protect = '
 
 
 our ($savit_n,%savit_p);
+our %conf;
+
+
+sub import {
+  my $class = shift;
+  our %conf = @_;
+  $class->export_to_level(1, undef, @EXPORT);
+
+  if ($conf{abbrev} && -f $conf{abbrev}) {
+    $conf{ABBREV} = Lingua::PT::Abbrev->new($conf{abbrev});
+  } else {
+    $conf{ABBREV} = Lingua::PT::Abbrev->new();
+  }
+
+  $abrev = $conf{ABBREV}->regexp(nodot=>1);
+}
+
+
 
 
 sub _savit{
@@ -93,6 +90,9 @@ sub _tokenize{
     }
     s/<\?xml.*?\?>//s;
     s/($protect)/_savit($1)/xge;
+    s!\b((([A-Z])\.)+)!       _savit($1)!gie;
+
+
     s!([\»\]])!$1 !g;
     s#([\«\[])# $1#g;
 
@@ -113,6 +113,7 @@ sub _tokenize{
     s/\n(\.?[ºª])\b/$1/g;
     while ( s#\b([0-9]+)\n([\,.])\n([0-9]+\n)#$1$2$3#g ){};
     s#\n($abrev)\n\.\n#\n$1\.\n#ig;
+
 
     s#([\]\)])([.,;:!?])#$1\n$2#g;
 
@@ -180,6 +181,9 @@ sub tokeniza {
 
     # separa as aspas anteriores
     s/ \"/ \« /g;
+
+    # separa as aspas anteriores mesmo no inicio
+    s/^\"/ \« /g;
 
     # separa as aspas posteriores
     s/\" / \» /g;
@@ -267,7 +271,7 @@ sub _sentences{
     s!($protect)!          _savit($1)!xge;
     s!\b(($abrev)\.)!      _savit($1)!ige;
     s!\b(\w+(º|ª)\.)!      _savit($1)!ige;
-    s!\b(([A-Z])\.)!       _savit($1)!ge;  # este à parte para não apanhar minúlculas (s///i)
+    s!\b(([A-Z])\.)!       _savit($1)!gie;  # este à parte para não apanhar minúlculas (s///i)
     s!($terminador)!$1$MARCA!g;
     $_ = _loadit($_);
     @r = split(/$MARCA/,$_);

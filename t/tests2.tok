@@ -247,3 +247,37 @@ ao
 doping
 »
 .
+
+# 17 - SIGLA
+
+Texto a falar dos U.S.A.
+
+Texto
+a
+falar
+dos
+U.S.A.
+
+# 18 - SIGLA -- com espaços
+
+Texto a falar dos U. S. A.
+
+Texto
+a
+falar
+dos
+U.
+S.
+A.
+
+# 19 - Texto com ^M
+
+Texto com
+carriage returns.
+
+Texto
+com
+carriage
+returns
+.
+

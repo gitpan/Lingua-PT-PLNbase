@@ -1,6 +1,6 @@
 # -*- cperl -*-
 
-use Test::More tests => 1 + 12;
+use Test::More tests => 1 + 14;
 
 use locale;
 
@@ -19,6 +19,8 @@ Os Exmos. Srs. deputados que...
 Os Exmos. Srs. Drs. vão almoçar ao Snack-Bar.
 Na rua Cel. António virar à esquerda, pela avenida do Sen. Joaquim.
 A empresa de Marco Correia e Cia. Lda. fica na Trv. Mário Soares.
+Foi nos E.U.A. que se assaltou qq coisa.
+Por ex. Satre afirmava
 EOT
 
 my $i = 0;
@@ -34,6 +36,8 @@ my @sts = (q/O dr. João Ratão comeu a D. Carochinha./,
 	   q/Os Exmos. Srs. Drs. vão almoçar ao Snack-Bar./,
 	   q/Na rua Cel. António virar à esquerda, pela avenida do Sen. Joaquim./,
 	   q/A empresa de Marco Correia e Cia. Lda. fica na Trv. Mário Soares./,
+	   q/Foi nos E.U.A. que se assaltou qq coisa./,
+	   q/Por ex. Satre afirmava/,
 	  );
 
 for (@sts) {

@@ -6,6 +6,7 @@ WriteMakefile(
     NAME              => 'Lingua::PT::PLNbase',
     VERSION_FROM      => 'lib/Lingua/PT/PLNbase.pm', # finds $VERSION
     PREREQ_PM         => {
+			  'Lingua::PT::Abbrev' => 0.05,
 			  'Test::Pod' => 1.00,
 			  'Test::Pod::Coverage' => 0.08,
 			 }, # e.g., Module::Name => 1.1

@@ -16,3 +16,6 @@ t/tokenizer2.t
 META.yml                                 Module meta-data (added by MakeMaker)
 t/tests2.tok
 t/accents.t
+t/tokenizer3.t
+t/tok3.abr
+t/tests3.tok
