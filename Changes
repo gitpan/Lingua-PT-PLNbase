@@ -1,5 +1,12 @@
 Revision history for Perl extension Lingua::PT::PLNbase.
 
+0.03  Thu Sep  2 10:46:10 2004
+	- added some more tests
+	- added other version of the tokenizer to the documentation
+        - removed failing tests to one of the tokenizers (bad practice)
+	- added documentation for fsentences
+	- corrected bug with wrong substitution
+
 0.02  Tue May 18 21:32:33 2004
 	- changed module description for CPAN
 

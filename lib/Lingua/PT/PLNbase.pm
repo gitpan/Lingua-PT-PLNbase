@@ -16,8 +16,8 @@ our %EXPORT_TAGS = ( 'all' => [ qw() ] );
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
-our @EXPORT = qw(atomiza sentences separa_frases fsentences);
-our $VERSION = '0.02';
+our @EXPORT = qw(atomiza sentences separa_frases fsentences tokeniza);
+our $VERSION = '0.03';
 
 
 
@@ -95,13 +95,27 @@ sub tokenize{
     s/($protect)/savit($1)/xge;
     s!([\»\]])!$1 !g;
     s#([\«\[])# $1#g;
-    s#\"# \" #g;
+
+    # No tokenizer de Oslo usa-se « e » para distinguir entre abrir e fechar...
+    # Para isso...
+    # separa as aspas anteriores
+    s/ \"/ \« /g;
+    # separa as aspas posteriores
+    s/\"([ .?!:;,]?)/ \» $1/g;
+    # separa as aspas posteriores mesmo no fim
+    s/\"$/ \»/g;
+
     s/(\s*\b\s*|\s+)/\n/g;
+
+    # s#\"# \" #g;
     # s/(.)\n-\n/$1-/g;
     s/\n+/\n/g;
     s/\n(\.?[ºª])\b/$1/g;
     while ( s#\b([0-9]+)\n([\,.])\n([0-9]+\n)#$1$2$3#g ){};
     s#\n($abrev)\n\.\n#\n$1\.\n#ig;
+
+    s#([\]\)])([.,;:!?])#$1\n$2#g;
+
     s/\n*</\n</;
     $_=loadit($_);
     s/(\s*\n)+$/\n/;
@@ -340,8 +354,11 @@ sub tratar_pontuacao_interna {
     s/ ([lc])j\./ $1j+/g; # conjunto ou loja
     #    $par=~s/ al\./ al+/g; # alameda tem que ir para depois de et.al...
 
-    s/Tel(e[fm])*\./Tel$1+/g; # Tel., Telef., Telem.
-    s/ tel(e[fm])*\./ tel$1+/g; # tel., telef., telem.
+    # Remover aqui uns warningzitos
+    s/Tel\./Tel+/g; # Tel.
+    s/Tel(e[fm])\./Tel$1+/g; #  Telef., Telem.
+    s/ tel\./ tel+/g; # tel.
+    s/ tel(e[fm])\./ tel$1+/g; #  telef., telem.
     s/Fax\./Fax+/g; # Fax.
     s/ cx\./ cx+/g; # caixa
 
@@ -927,7 +944,8 @@ na língua portuguesa. No entanto, é possível que possa ser usado para
 outras línguas.
 
 A forma simples de uso do atomizador é usando directamente a função
-C<atomiza> que retorna um texto em que cada linha contém um átomo.
+C<atomiza> que retorna um texto em que cada linha contém um átomo, ou o
+uso da função C<tokeniza> que contém outra versão de atomizador.
 
 =head2 Segmentação
 
@@ -957,6 +975,60 @@ frase por linha.
 Estas duas implementações irão ser testadas e aglomeradas numa única
 que permita ambas as funcionalidades.
 
+=head2 Segmentação a vários níveis
+
+A função C<fsentences> permite segmentar um conjunto de ficheiros a
+vários níveis: por ficheiro, por parágrafo ou por frase. O output pode
+ser realizado em vários formatos e obtendo, ou não, numeração de
+segmentos.
+
+Esta função é invocada com uma referência para um hash de configuração
+e uma lista de ficheiros a processar (no caso de a lista ser vazia,
+irá usar o C<STDIN>).
+
+O resultado do processamento é enviado para o C<STDOUT> a não ser que
+a chave C<output> do hash de configuração esteja definida. Nesse caso,
+o seu valor será usado como ficheiro de resultado.
+
+A chave C<input_p_sep> permite definir o separador de parágrafos. Por
+omissão, é usada uma linha em branco.
+
+A chave C<o_format> define as políticas de etiquetação do
+resultado. De momento, a única política disponível é a C<XML>.
+
+As chaves C<s_tag>, C<p_tag> e C<t_tag> definem as etiquetas a usar,
+na política XML, para etiquetar frases, parágrafos e textos
+(ficheiros), respectivamente. Por omissão, as etiquetas usadas são
+C<s>, C<p> e C<text>.
+
+É possível numerar as etiquetas, definindo as chaves C<s_num>,
+C<p_num> ou C<t_num> da seguinte forma:
+
+=over 4
+
+=item '0'
+
+Nenhuma numeração.
+
+=item 'f'
+
+Só pode ser usado com o C<t_tag>, e define que as etiquetas que
+delimitam ficheiros usará o nome do ficheiro como identificador.
+
+=item '1'
+
+Numeração a um nível. Cada etiqueta terá um contador diferente.
+
+=item '2'
+
+Só pode ser usado com o C<p_tag> ou o C<s_tag> e obriga à numeração a
+dois níveis (N.N).
+
+=item '3'
+
+Só pode ser usado com o C<s_tag> e obriga à numeração a três níveis (N.N.N)
+
+=back
 
 =head1 SEE ALSO
 

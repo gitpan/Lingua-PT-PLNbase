@@ -14,3 +14,4 @@ t/tests.tok
 t/tokenizer.t
 t/tokenizer2.t
 META.yml                                 Module meta-data (added by MakeMaker)
+t/tests2.tok

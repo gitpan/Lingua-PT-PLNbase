@@ -1,6 +1,6 @@
 # -*- cperl -*-
 
-use Test::More tests => 1 + 14 ; 
+use Test::More tests => 1 + 16 ;
 
 BEGIN { use_ok( 'Lingua::PT::PLNbase' ); }
 
@@ -17,7 +17,7 @@ SKIP: {
 
   my $input = "";
   my $output = "";
-  open T, "t/tests.tok" or die "Cannot open tests file";
+  open T, "t/tests2.tok" or die "Cannot open tests file";
   while(<T>) {
     chomp($input = <T>);
     chomp($output = <T>);

@@ -1,10 +1,10 @@
 # -*- cperl -*-
 
-use Test::More tests => 1; # + 15;
+use Test::More tests => 1 + 9;
 
 BEGIN { use_ok( 'Lingua::PT::PLNbase' ); }
 
-exit;
+#exit;
 
 use locale;
 
