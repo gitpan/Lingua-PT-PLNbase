@@ -16,8 +16,8 @@ our %EXPORT_TAGS = ( 'all' => [ qw() ] );
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
-our @EXPORT = qw(atomiza sentences separa_frases fsentences tokeniza);
-our $VERSION = '0.03';
+our @EXPORT = qw(atomiza frases separa_frases fsentences tokeniza has_accents remove_accents);
+our $VERSION = '0.04';
 
 
 
@@ -54,13 +54,13 @@ our $protect = '
 our ($savit_n,%savit_p);
 
 
-sub savit{
+sub _savit{
   my $a=shift;
   $savit_p{++$savit_n}=$a ;
   " __MARCA__$savit_n "
 }
 
-sub loadit{
+sub _loadit{
   my $a = shift;
   $a =~ s/ ?__MARCA__(\d+) ?/$savit_p{$1}/g;
   $savit_n = 0;
@@ -69,10 +69,10 @@ sub loadit{
 
 
 sub atomiza {
-  return tokenize(@_);
+  return _tokenize(@_);
 }
 
-sub tokenize{
+sub _tokenize{
   my $conf = {};
   my $result = "";
   my $text = shift;
@@ -92,7 +92,7 @@ sub tokenize{
       else             { $tag{'s'}{$a}++ }
     }
     s/<\?xml.*?\?>//s;
-    s/($protect)/savit($1)/xge;
+    s/($protect)/_savit($1)/xge;
     s!([\»\]])!$1 !g;
     s#([\«\[])# $1#g;
 
@@ -117,7 +117,7 @@ sub tokenize{
     s#([\]\)])([.,;:!?])#$1\n$2#g;
 
     s/\n*</\n</;
-    $_=loadit($_);
+    $_=_loadit($_);
     s/(\s*\n)+$/\n/;
     s/^(\s*\n)+//;
     $result.=$_;
@@ -256,20 +256,20 @@ sub tokeniza {
 
 
 
-sub frases { sentences(@_) }
-sub sentences{
+sub frases { _sentences(@_) }
+sub _sentences{
   my $terminador='([.?!;]+[»]?|<[pP]\b.*?>|<br>|:[\s\n](?=[-«"][A-Z]))';
 
   my @r;
   my $MARCA = "\0x01";
   my $par = shift;
   for ($par) {
-    s!($protect)!          savit($1)!xge;
-    s!\b(($abrev)\.)!      savit($1)!ige;
-    s!\b(\w+(º|ª)\.)!      savit($1)!ige;
-    s!\b(([A-Z])\.)!       savit($1)!ge;  # este à parte para não apanhar minúlculas (s///i)
+    s!($protect)!          _savit($1)!xge;
+    s!\b(($abrev)\.)!      _savit($1)!ige;
+    s!\b(\w+(º|ª)\.)!      _savit($1)!ige;
+    s!\b(([A-Z])\.)!       _savit($1)!ge;  # este à parte para não apanhar minúlculas (s///i)
     s!($terminador)!$1$MARCA!g;
-    $_ = loadit($_);
+    $_ = _loadit($_);
     @r = split(/$MARCA/,$_);
   }
   if (@r && $r[-1] =~ /^\s*$/s) {
@@ -785,26 +785,26 @@ sub fsentences {
       $fh = $file;
     } else {
       open $fh, $file or die("Cannot open file $file:$!\n");
-      print open_t_tag(\%opts, $file);
+      print _open_t_tag(\%opts, $file);
     }
 
     my $par;
     local $/ = $opts{input_p_sep};
     while ($par = <$fh>) {
-      print open_p_tag(\%opts);
+      print _open_p_tag(\%opts);
 
       chomp($par);
 
-      for my $s (sentences($par)) {
-	print open_s_tag(\%opts), clean(\%opts,$s), close_s_tag(\%opts);
+      for my $s (_sentences($par)) {
+	print _open_s_tag(\%opts), _clean(\%opts,$s), _close_s_tag(\%opts);
       }
 
-      print close_p_tag(\%opts);
+      print _close_p_tag(\%opts);
     }
 
 
     unless (ref($file)) {
-      print close_t_tag(\%opts);
+      print _close_t_tag(\%opts);
       close $fh
     }
     if (!ref($opts{output})) {
@@ -814,14 +814,14 @@ sub fsentences {
   }
 }
 
-sub clean {
+sub _clean {
   my $opts = shift;
   my $str = shift;
   $str =~ s/\s+/ /g;
   return $str;
 }
 
-sub open_t_tag {
+sub _open_t_tag {
   my $opts = shift;
   my $file = shift || "";
   if ($opts->{o_format} eq "XML" &&
@@ -843,7 +843,7 @@ sub open_t_tag {
   }
 }
 
-sub close_t_tag {
+sub _close_t_tag {
   my $opts = shift;
   my $file = shift || "";
   if ($opts->{o_format} eq "XML" &&
@@ -852,7 +852,7 @@ sub close_t_tag {
     }
 }
 
-sub open_p_tag {
+sub _open_p_tag {
   my $opts = shift;
 
   if ($opts->{o_format} eq "XML" &&
@@ -872,7 +872,7 @@ sub open_p_tag {
   }
 }
 
-sub close_p_tag {
+sub _close_p_tag {
   my $opts = shift;
   my $file = shift || "";
   if ($opts->{o_format} eq "XML" &&
@@ -882,7 +882,7 @@ sub close_p_tag {
 }
 
 
-sub open_s_tag {
+sub _open_s_tag {
   my $opts = shift;
 
   if ($opts->{o_format} eq "XML" &&
@@ -905,7 +905,7 @@ sub open_s_tag {
   }
 }
 
-sub close_s_tag {
+sub _close_s_tag {
   my $opts = shift;
   my $file = shift || "";
   if ($opts->{o_format} eq "XML" &&
@@ -915,6 +915,21 @@ sub close_s_tag {
 }
 
 
+sub has_accents {
+  my $word = shift;
+  if ($word =~ m![çáéíóúàèìòùãõâêîôûäëïöü]!i) {
+    return 1
+  } else {
+    return 0
+  }
+}
+
+sub remove_accents {
+  my $word = shift;
+  $word =~ tr/çáéíóúàèìòùãõâêîôûäëïöü/caeiouaeiouaoaeiouaeiou/;
+  $word =~ tr/ÇÁÉÍÓÚÀÈÌÒÙÃÕÂÊÎÔÛÄËÏÖÜ/CAEIOUAEIOUAOAEIOUAEIOU/;
+  return $word;
+}
 
 
 1;
@@ -931,7 +946,7 @@ Lingua::PT::PLNbase - Perl extension for NLP of the Portuguese
   my @atomos = atomiza($texto);
   my $atomos_um_por_linha = atomiza($texto);
 
-  my @frases = sentences($texto);
+  my @frases = frases($texto);
   my $frases = separa_frases($texto);
 
 
@@ -947,6 +962,18 @@ A forma simples de uso do atomizador é usando directamente a função
 C<atomiza> que retorna um texto em que cada linha contém um átomo, ou o
 uso da função C<tokeniza> que contém outra versão de atomizador.
 
+=over 4
+
+=item atomiza
+
+Usa um algorítmo desenvolvido no Projecto Natura
+
+=item tokeniza
+
+Usa um algorítmo desenvolvido no Pólo de Oslo da Linguateca
+
+=back
+
 =head2 Segmentação
 
 Este módulo é uma extensão Perl para a segmentação de textos em
@@ -956,14 +983,14 @@ apenas a separação em frases (fraseação) usando uma de duas variantes:
 
 =over 4
 
-=item Projecto Natura
+=item frases
 
-  @frases = sentences($texto);
+  @frases = frases($texto);
 
 Esta é a implementação do Projecto Natura, que retorna uma lista de
 frases.
 
-=item Linguateca
+=item separa_frases
 
   $frases = separa_frases($texto);
 
@@ -976,6 +1003,10 @@ Estas duas implementações irão ser testadas e aglomeradas numa única
 que permita ambas as funcionalidades.
 
 =head2 Segmentação a vários níveis
+
+=over 4
+
+=item fsentences
 
 A função C<fsentences> permite segmentar um conjunto de ficheiros a
 vários níveis: por ficheiro, por parágrafo ou por frase. O output pode
@@ -1027,6 +1058,32 @@ dois níveis (N.N).
 =item '3'
 
 Só pode ser usado com o C<s_tag> e obriga à numeração a três níveis (N.N.N)
+
+=back
+
+=back
+
+=head2 Acentuação
+
+=over 4
+
+=item remove_accents
+
+Esta função remove a acentuação do texto passado como parâmetro
+
+=item has_accents
+
+Esta função verifica se o texto passado como parâmetro tem caracteres acentuados
+
+=back
+
+=head2 Funções auxiliares
+
+=over 4
+
+=item recupera_ortografia_certa
+
+=item tratar_pontuacao_interna
 
 =back
 

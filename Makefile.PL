@@ -5,7 +5,10 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     NAME              => 'Lingua::PT::PLNbase',
     VERSION_FROM      => 'lib/Lingua/PT/PLNbase.pm', # finds $VERSION
-    PREREQ_PM         => {}, # e.g., Module::Name => 1.1
+    PREREQ_PM         => {
+			  'Test::Pod' => 1.00,
+			  'Test::Pod::Coverage' => 0.08,
+			 }, # e.g., Module::Name => 1.1
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM  => 'lib/Lingua/PT/PLNbase.pm', # retrieve abstract from module
        AUTHOR         => 'Alberto Simoes <ambs@di.uminho.pt>') : ()),

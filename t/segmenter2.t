@@ -6,7 +6,7 @@ use locale;
 
 BEGIN { use_ok( 'Lingua::PT::PLNbase' ); }
 
-my @ss = sentences(<<"EOT");
+my @ss = frases(<<"EOT");
 O dr. João Ratão comeu a D. Carochinha.
 O Eng. visitou a av. do Marquês.
 O Ex. Sr. António foi prof. de Matemática.

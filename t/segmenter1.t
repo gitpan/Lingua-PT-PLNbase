@@ -6,7 +6,7 @@ use locale;
 
 BEGIN { use_ok( 'Lingua::PT::PLNbase' ); }
 
-my @ss = sentences(<<"EOT");
+my @ss = frases(<<"EOT");
 Um homem trocou as ruas cheias de neve de Chicago por umas férias na
 ensolarada Florida.  A esposa estava a viajar em negócios e estava a
 planear encontrar-se com ele lá no dia seguinte.  Ao chegar ao hotel

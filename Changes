@@ -1,5 +1,9 @@
 Revision history for Perl extension Lingua::PT::PLNbase.
 
+0.04  Fri Oct  1 16:00:00 2004
+	- added has_accents and remove_accents functions
+	- added tests for POD correctness and POD coverage
+
 0.03  Thu Sep  2 10:46:10 2004
 	- added some more tests
 	- added other version of the tokenizer to the documentation
