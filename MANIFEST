@@ -21,3 +21,5 @@ t/ftext1.out3
 t/ftext1.out4
 META.yml                                 Module meta-data (added by MakeMaker)
 scripts/sentences
+t/pod-coverage.t
+t/pod.t

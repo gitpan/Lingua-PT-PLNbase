@@ -13,7 +13,7 @@ use locale;
 
 
 our @EXPORT = qw(atomiza frases separa_frases fsentences tokeniza has_accents remove_accents);
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 our $abrev;
 
