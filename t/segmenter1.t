@@ -1,12 +1,17 @@
 # -*- cperl -*-
 
-use Test::More tests => 15;
+use Test::More tests => 1 + 14;
 
 use locale;
 
 BEGIN { use_ok( 'Lingua::PT::PLNbase' ); }
 
-my @ss = frases(<<"EOT");
+$a = 'Çáé';
+
+SKIP: {
+  skip "not a good locale", 14 unless $a =~ m!^\w{3}$!;
+
+  my @ss = frases(<<"EOT");
 Um homem trocou as ruas cheias de neve de Chicago por umas férias na
 ensolarada Florida.  A esposa estava a viajar em negócios e estava a
 planear encontrar-se com ele lá no dia seguinte.  Ao chegar ao hotel
@@ -24,8 +29,8 @@ certeza de que tu também vais gostar... Beijos do teu eterno e
 carinhoso marido. P.S.: aqui está um calor infernal!!
 EOT
 
-my $i = 0;
-my @sts = ("Um homem trocou as ruas cheias de neve de Chicago por umas férias na
+  my $i = 0;
+  my @sts = ("Um homem trocou as ruas cheias de neve de Chicago por umas férias na
 ensolarada Florida.","A esposa estava a viajar em negócios e estava a
 planear encontrar-se com ele lá no dia seguinte.","Ao chegar ao hotel
 resolveu mandar um e-mail para a sua mulher.","Como não encontrou o
@@ -41,8 +46,9 @@ pessoal e está tudo preparado para a tua chegada amanhã.","Tenho a
 certeza de que tu também vais gostar...","Beijos do teu eterno e
 carinhoso marido.","P.S.: aqui está um calor infernal!!");
 
-for (@sts) {
-  is(trim($ss[$i++]),$_)
+  for (@sts) {
+    is(trim($ss[$i++]),$_)
+  }
 }
 
 
