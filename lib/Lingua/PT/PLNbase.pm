@@ -13,7 +13,7 @@ use locale;
 
 
 our @EXPORT = qw(atomiza frases separa_frases fsentences tokeniza has_accents remove_accents);
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 our $abrev;
 
@@ -262,7 +262,7 @@ sub tokeniza {
 
 sub frases { _sentences(@_) }
 sub _sentences{
-  my $terminador='([.?!;]+[»]?|<[pP]\b.*?>|<br>|:[\s\n](?=[-«"][A-Z]))';
+  my $terminador='([.?!;]+[»]?|<[pP]\b.*?>|<br>|\n\n+|:[\s\n](?=[-«"][A-Z]))';
 
   my @r;
   my $MARCA = "\0x01";
@@ -279,7 +279,14 @@ sub _sentences{
   if (@r && $r[-1] =~ /^\s*$/s) {
     pop(@r)
   }
-  @r;
+  return map { _trim($_) } @r;
+}
+
+sub _trim {
+  my $x = shift;
+  $x =~ s/^[\n\r\s]+//;
+  $x =~ s/[\n\r\s]+$//;
+  return $x;
 }
 
 

@@ -1,5 +1,8 @@
 Revision history for Perl extension Lingua::PT::PLNbase.
 
+0.09  Thu Nov 11  9:21:00 2004
+	- Added some features to segmenter;
+
 0.08  Wed Nov 10  9:05:00 2004
 	- Corrected some more tests for bad locale systems;
 
