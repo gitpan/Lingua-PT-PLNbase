@@ -11,7 +11,7 @@ use locale;
 $a = '«·È';
 
 SKIP: {
-  skip "not a good locale", 15 unless $a =~ m!^\w{3}$!;
+  skip "not a good locale", 10 unless $a =~ m!^\w{3}$!;
 
   $/ = "\n\n";
 

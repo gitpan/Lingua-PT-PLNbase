@@ -10,7 +10,7 @@ $a = '«·È';
 
 $i = 0;
 SKIP: {
-  skip "not a good locale", 15 unless $a =~ m!^\w{3}$!;
+  skip "not a good locale", 17 unless $a =~ m!^\w{3}$!;
 
   $i++;
   $/ = "\n\n";

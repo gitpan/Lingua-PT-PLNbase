@@ -1,5 +1,8 @@
 Revision history for Perl extension Lingua::PT::PLNbase.
 
+0.05  Mon Oct  4 09:33:33 2004
+	- corrected tests skip in case of weird locale.
+
 0.04  Fri Oct  1 16:00:00 2004
 	- added has_accents and remove_accents functions
 	- added tests for POD correctness and POD coverage
