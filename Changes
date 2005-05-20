@@ -1,5 +1,8 @@
 Revision history for Perl extension Lingua::PT::PLNbase.
 
+0.13  Thu May 20  9:00:00 2005
+	- Corrected a bunch of bugs
+
 0.12  Thu Mar 31 15:24:00 2005
 	- Added pod coverage tests missing
 

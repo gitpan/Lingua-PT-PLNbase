@@ -13,7 +13,7 @@ use locale;
 
 
 our @EXPORT = qw(atomiza frases separa_frases fsentences tokeniza has_accents remove_accents);
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 our $abrev;
 
@@ -820,11 +820,13 @@ sub fsentences {
       print _close_t_tag(\%opts);
       close $fh
     }
-    if (!ref($opts{output})) {
-      select $oldselect;
-    }
 
   }
+
+  if (!ref($opts{output})) {
+    select $oldselect;
+  }
+
 }
 
 sub _clean {
