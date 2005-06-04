@@ -1,6 +1,8 @@
 # -*- cperl -*-
 
 use Test::More tests => 1 + 19 ;
+use POSIX qw(locale_h);
+setlocale(LC_CTYPE, "pt_PT");
 
 BEGIN { use_ok( 'Lingua::PT::PLNbase' ); }
 

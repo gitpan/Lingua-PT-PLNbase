@@ -1,6 +1,8 @@
 # -*- cperl -*-
 
 use Test::More tests => 1 + 1;
+use POSIX qw(locale_h);
+setlocale(LC_CTYPE, "pt_PT");
 
 use Lingua::PT::PLNbase 'abbrev' => 't/tok3.abr';
 

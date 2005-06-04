@@ -1,5 +1,8 @@
 Revision history for Perl extension Lingua::PT::PLNbase.
 
+0.14  Sat Jun  4 19:57:00 2005
+	- Force PT encoding for tests (natural for Lingua::PT modules)
+
 0.13  Thu May 20  9:00:00 2005
 	- Corrected a bunch of bugs
 

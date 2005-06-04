@@ -2,6 +2,8 @@
 
 use Test::More tests => 1 + 14;
 
+use POSIX qw(locale_h);
+setlocale(LC_CTYPE, "pt_PT");
 use locale;
 
 BEGIN { use_ok( 'Lingua::PT::PLNbase' ); }
