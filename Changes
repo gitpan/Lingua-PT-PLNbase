@@ -1,5 +1,11 @@
 Revision history for Perl extension Lingua::PT::PLNbase.
 
+0.16  Mon Nov 20  8:20:01 2006
+	- Upload of 0.15 failed
+
+0.15  Mon Nov 20  8:20:00 2006
+	- Change behaviour on tokenizing quotes by configuration
+
 0.14  Sat Jun  4 19:57:00 2005
 	- Force PT encoding for tests (natural for Lingua::PT modules)
 

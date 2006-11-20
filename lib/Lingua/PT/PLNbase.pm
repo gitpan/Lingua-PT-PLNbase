@@ -13,7 +13,7 @@ use locale;
 
 
 our @EXPORT = qw(atomiza frases separa_frases fsentences tokeniza has_accents remove_accents);
-our $VERSION = '0.14';
+our $VERSION = '0.16';
 
 our $abrev;
 
@@ -79,7 +79,7 @@ sub _tokenize{
     $text = shift;
   }
 
-  local $/ = ">";
+  # local $/ = ">";
   my %tag=();
   my ($a,$b);
   for ($text) {
@@ -96,18 +96,22 @@ sub _tokenize{
     s!([\»\]])!$1 !g;
     s#([\«\[])# $1#g;
 
-    # No tokenizer de Oslo usa-se « e » para distinguir entre abrir e fechar...
-    # Para isso...
-    # separa as aspas anteriores
-    s/ \"/ \« /g;
-    # separa as aspas posteriores
-    s/\"([ .?!:;,]?)/ \» $1/g;
-    # separa as aspas posteriores mesmo no fim
-    s/\"$/ \»/g;
+    if (defined($conf->{keep_quotes})) {
+      s#\"# \" #g;
+    } else {
+      # No tokenizer de Oslo usa-se « e » para distinguir entre abrir
+      # e fechar...  Para isso...
+
+      # separa as aspas anteriores
+      s/ \"/ \« /g;
+      # separa as aspas posteriores
+      s/\"([ .?!:;,]?)/ \» $1/g;
+      # separa as aspas posteriores mesmo no fim
+      s/\"$/ \»/g;
+    }
 
     s/(\s*\b\s*|\s+)/\n/g;
 
-    # s#\"# \" #g;
     # s/(.)\n-\n/$1-/g;
     s/\n+/\n/g;
     s/\n(\.?[ºª])\b/$1/g;
@@ -970,7 +974,7 @@ Lingua::PT::PLNbase - Perl extension for NLP of the Portuguese
   use Lingua::PT::PLNbase;
 
   my @atomos = atomiza($texto);
-  my $atomos_um_por_linha = atomiza($texto);
+  my $atomos_um_por_linha = tokeniza($texto);
 
   my @frases = frases($texto);
   my $frases = separa_frases($texto);
@@ -992,7 +996,10 @@ uso da função C<tokeniza> que contém outra versão de atomizador.
 
 =item atomiza
 
-Usa um algorítmo desenvolvido no Projecto Natura
+Usa um algorítmo desenvolvido no Projecto Natura.
+
+Para que as aspas não sejam convertidas em I<abrir aspa> e I<fechar
+aspa>, usar a opção de configuração C<keep_quotes>.
 
 =item tokeniza
 
