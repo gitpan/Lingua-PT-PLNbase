@@ -1,6 +1,6 @@
 # -*- cperl -*-
 
-use Test::More tests => 1 + 19 ;
+use Test::More tests => 1 + 21 ;
 use POSIX qw(locale_h);
 setlocale(LC_CTYPE, "pt_PT");
 
@@ -12,7 +12,7 @@ $a = '«·È';
 
 $i = 0;
 SKIP: {
-  skip "not a good locale", 19 unless $a =~ m!^\w{3}$!;
+  skip "not a good locale", 21 unless $a =~ m!^\w{3}$!;
 
   $i++;
   $/ = "\n\n";
@@ -26,8 +26,8 @@ SKIP: {
 
 
     my $tok2 = atomiza($input); # Braga
-    is($tok2, $output);
-  exit if $i == 14;
+    is($tok2, $output, "$input");
+#    exit if $i == 14;
   }
   close T;
 }

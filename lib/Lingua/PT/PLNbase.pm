@@ -8,29 +8,69 @@ use Lingua::PT::Abbrev;
 
 require Exporter;
 our @ISA = qw(Exporter);
-
 use locale;
 
 
-our @EXPORT = qw(atomiza frases separa_frases fsentences tokeniza has_accents remove_accents);
-our $VERSION = '0.16';
+
+
+=head1 NAME
+
+Lingua::PT::PLNbase - Perl extension for NLP of the Portuguese
+
+=head1 SYNOPSIS
+
+  use Lingua::PT::PLNbase;
+
+  my @atomos = atomiza($texto);   # tb chamada 'tokenize'
+
+  my $atomos_um_por_linha = tokeniza($texto);
+  my $atomos_separados_por_virgula = tokeniza({fs => ','}, $texto);
+
+
+  my @frases = frases($texto);
+
+=head1 DESCRIPTION
+
+Este módulo inclui funções básicas úteis ao processamento
+computacional da língua, e em particular, da língua portuguesa.
+
+=cut
+
+
+
+our @EXPORT = qw(
+   atomiza frases separa_frases fsentences
+   tokeniza has_accents remove_accents
+   xmlsentences sentences
+   cqptokens tokenize
+);
+
+our $VERSION = '0.17';
 
 our $abrev;
 
-our $protect = '
+our $terminador = qr{([.?!;]+[\»"']?|<[pP]\b.*?>|<br>|\n\n+|:\s+(?=[-\«"][A-Z]))};
+
+our $protect = qr'
        \#n\d+
     |  \w+\'\w+
     |  [\w_.-]+ \@ [\w_.-]+\w                    # emails
-    |  \w+\.[ºª]                                 # ordinals
+    |  \w+\.?[ºª°]\.?                            # ordinals
     |  <[^>]*>                                   # markup XML SGML
-    |  \d+(?:\.\d+)+                             # numbers
-    |  \d+\:\d+                                  # the time
-    |  ((https?|ftp|gopher)://|www)[\w_./~-]+\w  # urls
+    |  \d+(?:\/\d+)+                             # dates or similar 12/21/1
+    |  \d+(?:[.,]\d+)+%?                         # numbers
+    |  \d+(?:\.[oa])+                            # ordinals numbers  12.o
+    |  \d+\:\d+(\:\d+)?                          # the time         12:12:2
+    |  (?:\&\w+\;)                               # entidades XML HTML
+    |  ((https?|ftp|gopher)://|www)[\w_./~:-]+\w # urls
+    |  \w+\.(?:com|org|net|pt)                   # simplified urls
     |  \w+(-\w+)+                                # dá-lo-à
-';
+    |  \\\\unicode\{\d+\}                        # unicode...
+    |  \w+\.(?:exe|html?|zip|jpg|gif|wav|mp3|png|t?gz|pl|xml) # filenames
+'x;
 
 
-our ($savit_n,%savit_p);
+our ($savit_n, %savit_p);
 our %conf;
 
 
@@ -49,8 +89,6 @@ sub import {
 }
 
 
-
-
 sub _savit{
   my $a=shift;
   $savit_p{++$savit_n}=$a ;
@@ -65,12 +103,121 @@ sub _loadit{
 }
 
 
-sub atomiza {
-  return _tokenize(@_);
+
+sub _tokenizecommon{
+  my $conf = { keep_quotes => 0 };
+  if (ref($_[0]) eq "HASH") {
+    my $c = shift;
+    $conf = {%$conf, %$c};
+  }
+
+  my $text = shift;
+
+  for ($text) {
+    s/<\?xml.*?\?>//s;
+
+    if ($conf->{keep_quotes}) {
+      s#\"# \" #g;
+    } else {
+      s/^\"/\« /g;
+      s/ \"/ \« /g;
+      s/\"([ .?!:;,])/ \» $1/g;
+      s/\"$/ \»/g;
+    }
+
+    s!(\w)('(s|ld|nt|ll|m|t|re))\b!"$1 " . _savit($2)!ge;  # I 'm we 're can 't
+    s!([[:alpha:]]+')(\w)!         _savit($1) . " $2"!ge;
+
+    if ($conf->{keep_quotes}) {
+      s#\'# \' #g;
+    } else {
+      s/^\'/\« /g;
+      s/ \'/ \« /g;
+      s/\'([ .?!:;,])/ \» $1/g;
+      s/\'$/ \»/g;
+    }
+
+    s!($protect)!      _savit($1)!xge;
+    s!\b((([A-Z])\.)+)!_savit($1)!gie;
+
+    s!([\»\]])!$1 !g; # » | ]
+    s!([\«\[])! $1!g;
+
+    s/(\s*\b\s*|\s+)/\n/g;
+
+    # s/(.)\n-\n/$1-/g;
+    s/\n+/\n/g;
+    s/\n(\.?[ºª°])\b/$1/g;
+
+
+    s#\n($abrev)\n\.\n#\n$1\.\n#ig;
+
+    s#([\]\)])([.,;:!?])#$1\n$2#g;
+
+    s/\n*</\n</;
+    $_ = _loadit($_);
+    s/(\s*\n)+$/\n/;
+    s/^(\s*\n)+//;
+  }
+  $text
 }
 
-sub _tokenize{
-  my $conf = {};
+=head2 Atomizadores
+
+Este módulo inclui um método configurável para a atomização de corpus
+na língua portuguesa. No entanto, é possível que possa ser usado para
+outras línguas (especialmente inglês e francês.
+
+A forma simples de uso do atomizador é usando directamente a função
+C<atomiza> que retorna um texto em que cada linha contém um átomo (ou
+o uso da função C<tokeniza> que contém outra versão de atomizador).
+
+As funções disponíveis:
+
+=over 4
+
+=item atomiza
+
+=item tokenize
+
+Usa um algorítmo desenvolvido no Projecto Natura.
+
+Para que as aspas não sejam convertidas em I<abrir aspa> e I<fechar
+aspa>, usar a opção de configuração C<keep_quotes>.
+
+Retorna texto tokenizado, um por linha (a nao ser que o 'record
+separator' (rs) seja redefenido). Em ambiente lista, retorna a lista
+dos átomos.
+
+  my @atomos = atomiza($texto);   # tb chamada 'tokenize'
+
+  my $atomos_um_por_linha = tokeniza($texto);
+  my $atomos_separados_por_virgula = tokeniza({fs => ','}, $texto);
+
+
+=item tokeniza
+
+Usa um algorítmo desenvolvido no Pólo de Oslo da Linguateca. Retorna
+um átomo por linha em contexto escalar, e uma lista de átomos em
+contexto de lista.
+
+=item cqptokens
+
+Um átomo por linha de acordo com notação CWB. Pode ser alterado o
+separador de frases (ou de registo) usando a opção 'irs':
+
+   cqptokens( { irs => "\n\n" }, "file" );
+
+=back
+
+=cut
+
+sub atomiza {
+  return tokenize(@_);
+}
+
+sub tokenize{
+  my $conf = { rs => "\n" };
   my $result = "";
   my $text = shift;
 
@@ -79,66 +226,413 @@ sub _tokenize{
     $text = shift;
   }
 
-  # local $/ = ">";
-  my %tag=();
-  my ($a,$b);
-  for ($text) {
-    if(/<(\w+)(.*?)>/) {
-      ($a, $b) = ($1,$2);
-      if ($b =~ /=/ )  { $tag{'v'}{$a}++ }
-      else             { $tag{'s'}{$a}++ }
-    }
-    s/<\?xml.*?\?>//s;
-    s/($protect)/_savit($1)/xge;
-    s!\b((([A-Z])\.)+)!       _savit($1)!gie;
-
-
-    s!([\»\]])!$1 !g;
-    s#([\«\[])# $1#g;
-
-    if (defined($conf->{keep_quotes})) {
-      s#\"# \" #g;
-    } else {
-      # No tokenizer de Oslo usa-se « e » para distinguir entre abrir
-      # e fechar...  Para isso...
-
-      # separa as aspas anteriores
-      s/ \"/ \« /g;
-      # separa as aspas posteriores
-      s/\"([ .?!:;,]?)/ \» $1/g;
-      # separa as aspas posteriores mesmo no fim
-      s/\"$/ \»/g;
-    }
-
-    s/(\s*\b\s*|\s+)/\n/g;
-
-    # s/(.)\n-\n/$1-/g;
-    s/\n+/\n/g;
-    s/\n(\.?[ºª])\b/$1/g;
-    while ( s#\b([0-9]+)\n([\,.])\n([0-9]+\n)#$1$2$3#g ){};
-    s#\n($abrev)\n\.\n#\n$1\.\n#ig;
-
-
-    s#([\]\)])([.,;:!?])#$1\n$2#g;
-
-    s/\n*</\n</;
-    $_=_loadit($_);
-    s/(\s*\n)+$/\n/;
-    s/^(\s*\n)+//;
-    $result.=$_;
-  }
-
+  $result = _tokenizecommon($conf, $text);
   $result =~ s/\n$//g;
 
-
   if (wantarray) {
-    return split /\s+/, $result
+    return split /\n+/, $result
   } else {
-    $result =~ s/\n/$conf->{rs}/g if defined $conf->{rs};
+    $result =~ s/\n/$conf->{rs}/g unless $conf->{rs} eq "\n";
     return $result;
   }
 }
 
+sub cqptokens{        ## 
+  my %opt = ( irs => ">"); # irs => INPUT RECORD SEPARATOR
+  if(ref($_[0]) eq "HASH"){ %opt = (%opt , %{shift(@_)});}
+  my $file = shift || "-";
+
+  local $/ = $opt{irs};
+  my %tag=();
+  my ($a,$b);
+  open(F,"$file");
+  while(<F>) {
+    if(/<(\w+)(.*?)>/){
+      ($a, $b) = ($1,$2);
+      if ($b =~ /=/ )  { $tag{'v'}{$a}++ }
+      else             { $tag{'s'}{$a}++ }
+    }
+    print _tokenizecommon({},$_)
+  }
+  return \%tag
+}
+
+
+
+=head2 Segmentadores
+
+Este módulo é uma extensão Perl para a segmentação de textos em
+linguagem natural. O objectivo principal será a possibilidade de
+segmentação a vários níveis, no entanto esta primeira versão permite
+apenas a separação em frases (fraseação) usando uma de duas variantes:
+
+=over 4
+
+=item C<frases>
+
+=item C<sentences>
+
+  @frases = frases($texto);
+
+Esta é a implementação do Projecto Natura, que retorna uma lista de
+frases.
+
+=item C<separa_frases>
+
+  $frases = separa_frases($texto);
+
+Esta é a implementação da Linguateca, que retorna um texto com uma
+frase por linha.
+
+=item C<xmlsentences>
+
+Utiliza o método C<frases> e aplica uma etiqueta XML a cada frase. Por omissão,
+as frases são ladeadas por '<s>' e '</s>'. O nome da etiqueta pode ser
+substituído usando o parametro opcional C<st>.
+
+  xmlsentences({st=> "tag"}, text)
+
+=back
+
+=cut
+
+sub xmlsentences {
+  my %opt = (st => "s") ;
+  if (ref($_[0]) eq "HASH"){ %opt = (%opt , %{shift(@_)});}
+  my $par=shift;
+  join("\n",map {"<$opt{st}>$_</$opt{st}>"} (sentences($par)));
+}
+
+
+
+sub frases { sentences(@_) }
+sub sentences{
+  my @r;
+  my $MARCA = "\0x01";
+  my $par = shift;
+  for ($par) {
+    s!($protect)!          _savit($1)!xge;
+    s!\b(($abrev)\.)!      _savit($1)!ige;
+    s!\b(([A-Z])\.)!       _savit($1)!gie;  # este à parte para não apanhar minúlculas (s///i)
+    s!($terminador)!$1$MARCA!g;
+    $_ = _loadit($_);
+    @r = split(/$MARCA/,$_);
+  }
+  if (@r && $r[-1] =~ /^\s*$/s) {
+    pop(@r)
+  }
+  return map { _trim($_) } @r;
+}
+
+sub _trim {
+  my $x = shift;
+  $x =~ s/^[\n\r\s]+//;
+  $x =~ s/[\n\r\s]+$//;
+  return $x;
+}
+
+
+=head2 Segmentação a vários níveis
+
+=over 4
+
+=item fsentences
+
+A função C<fsentences> permite segmentar um conjunto de ficheiros a
+vários níveis: por ficheiro, por parágrafo ou por frase. O output pode
+ser realizado em vários formatos e obtendo, ou não, numeração de
+segmentos.
+
+Esta função é invocada com uma referência para um hash de configuração
+e uma lista de ficheiros a processar (no caso de a lista ser vazia,
+irá usar o C<STDIN>).
+
+O resultado do processamento é enviado para o C<STDOUT> a não ser que
+a chave C<output> do hash de configuração esteja definida. Nesse caso,
+o seu valor será usado como ficheiro de resultado.
+
+A chave C<input_p_sep> permite definir o separador de parágrafos. Por
+omissão, é usada uma linha em branco.
+
+A chave C<o_format> define as políticas de etiquetação do
+resultado. De momento, a única política disponível é a C<XML>.
+
+As chaves C<s_tag>, C<p_tag> e C<t_tag> definem as etiquetas a usar,
+na política XML, para etiquetar frases, parágrafos e textos
+(ficheiros), respectivamente. Por omissão, as etiquetas usadas são
+C<s>, C<p> e C<text>.
+
+É possível numerar as etiquetas, definindo as chaves C<s_num>,
+C<p_num> ou C<t_num> da seguinte forma:
+
+=over 4
+
+=item '0'
+
+Nenhuma numeração.
+
+=item 'f'
+
+Só pode ser usado com o C<t_tag>, e define que as etiquetas que
+delimitam ficheiros usará o nome do ficheiro como identificador.
+
+=item '1'
+
+Numeração a um nível. Cada etiqueta terá um contador diferente.
+
+=item '2'
+
+Só pode ser usado com o C<p_tag> ou o C<s_tag> e obriga à numeração a
+dois níveis (N.N).
+
+=item '3'
+
+Só pode ser usado com o C<s_tag> e obriga à numeração a três níveis (N.N.N)
+
+=back
+
+=back
+
+
+ nomes das etiquetas (s => 's', p=>'p', t=>'text')
+
+ t: 0 - nenhuma
+    1 - numeracao
+    f - ficheiro [DEFAULT]
+
+ p: 0 - nenhuma
+    1 - numeracao 1 nivel [DEFAULT]
+    2 - numercao 2 niveis (N.N)
+
+ s: 0 - nenhuma
+    1 - numeração 1 nível [DEFAULT]
+    2 - numeração 2 níveis (N.N)
+    3 - numeração 3 níveis (N.N.N)
+
+=cut
+
+sub fsentences {
+  my %opts = (
+	      o_format => 'XML',
+	      s_tag    => 's',
+	      s_num    => '1',
+	      s_last   => '',
+
+	      p_tag    => 'p',
+	      p_num    => '1',
+	      p_last   => '',
+
+	      t_tag    => 'text',
+	      t_num    => 'f',
+	      t_last   => '',
+
+	      tokenize => 0,
+
+	      output   => \*STDOUT,
+	      input_p_sep => '',
+	     );
+
+  %opts = (%opts, %{shift()}) if ref($_[0]) eq "HASH";
+
+
+  my @files = @_;
+  @files = (\*STDIN) unless @files;
+
+  my $oldselect;
+  if (!ref($opts{output})) {
+    open OUT, ">$opts{output}" or die("Cannot open file for writting: $!\n");
+    $oldselect = select OUT;
+  }
+
+  for my $file (@files) {
+    my $fh;
+    if (ref($file)) {
+      $fh = $file;
+    } else {
+      open $fh, $file or die("Cannot open file $file:$!\n");
+      print _open_t_tag(\%opts, $file);
+    }
+
+    my $par;
+    local $/ = $opts{input_p_sep};
+    while ($par = <$fh>) {
+      print _open_p_tag(\%opts);
+
+      chomp($par);
+
+      for my $s (sentences($par)) {
+	print _open_s_tag(\%opts), _clean(\%opts,$s), _close_s_tag(\%opts);
+      }
+
+      print _close_p_tag(\%opts);
+    }
+
+
+    unless (ref($file)) {
+      print _close_t_tag(\%opts);
+      close $fh
+    }
+
+  }
+
+  if (!ref($opts{output})) {
+    select $oldselect;
+  }
+
+}
+
+sub _clean {
+  my $opts = shift;
+  my $str = shift;
+
+  if ($opts->{tokenize}) {
+    $str = join(" ", atomiza($str))
+  } else {
+    $str =~ s/\s+/ /g;
+  }
+  return $str;
+}
+
+sub _open_t_tag {
+  my $opts = shift;
+  my $file = shift || "";
+  if ($opts->{o_format} eq "XML" &&
+      $opts->{t_tag}) {
+    if ($opts->{t_num} eq 0) {
+      return "<$opts->{t_tag}>\n";
+    } elsif ($opts->{t_num} eq 'f') {
+      $opts->{t_last} = $file;
+      $opts->{p_last} = 0;
+      $opts->{s_last} = 0;
+      return "<$opts->{t_tag} file=\"$file\">\n";
+    } else {
+      ## t_num = 1 :-)
+      ++$opts->{t_last};
+      $opts->{p_last} = 0;
+      $opts->{s_last} = 0;
+      return "<$opts->{t_tag} id=\"$opts->{t_last}\">\n";
+    }
+  }
+  return "" if ($opts->{o_format} eq "NATools");
+}
+
+sub _close_t_tag {
+  my $opts = shift;
+  my $file = shift || "";
+  if ($opts->{o_format} eq "XML" &&
+      $opts->{t_tag}) {
+    return "</$opts->{t_tag}>\n";
+  }
+  return "" if ($opts->{o_format} eq "NATools");
+}
+
+sub _open_p_tag {
+  my $opts = shift;
+
+  if ($opts->{o_format} eq "XML" &&
+      $opts->{p_tag}) {
+    if ($opts->{p_num} == 0) {
+      return "<$opts->{p_tag}>\n";
+    } elsif ($opts->{p_num} == 1) {
+      ++$opts->{p_last};
+      $opts->{s_last} = 0;
+      return "<$opts->{p_tag} id=\"$opts->{p_last}\">\n";
+    } else {
+      ## p_num = 2
+      ++$opts->{p_last};
+      $opts->{s_last} = 0;
+      return "<$opts->{p_tag} id=\"$opts->{t_last}.$opts->{p_last}\">\n";
+    }
+  }
+  return "" if ($opts->{o_format} eq "NATools");
+}
+
+sub _close_p_tag {
+  my $opts = shift;
+  my $file = shift || "";
+  if ($opts->{o_format} eq "XML" &&
+      $opts->{p_tag}) {
+    return "</$opts->{p_tag}>\n";
+  }
+  return "" if ($opts->{o_format} eq "NATools");
+}
+
+
+sub _open_s_tag {
+  my $opts = shift;
+
+  if ($opts->{o_format} eq "XML" &&
+      $opts->{s_tag}) {
+    if ($opts->{s_num} == 0) {
+      return "<$opts->{s_tag}>";
+    } elsif ($opts->{s_num} == 1) {
+      ++$opts->{s_last};
+      return "<$opts->{s_tag} id=\"$opts->{s_last}\">";
+
+    } elsif ($opts->{s_num} == 2) {
+      ++$opts->{s_last};
+      return "<$opts->{s_tag} id=\"$opts->{p_last}.$opts->{s_last}\">";
+
+    } else {
+      ## p_num = 3
+      ++$opts->{s_last};
+      return "<$opts->{s_tag} id=\"$opts->{t_last}.$opts->{p_last}.$opts->{s_last}\">";
+    }
+  }
+  return "" if ($opts->{o_format} eq "NATools");
+}
+
+sub _close_s_tag {
+  my $opts = shift;
+  my $file = shift || "";
+  if ($opts->{o_format} eq "XML" &&
+      $opts->{s_tag}) {
+    return "</$opts->{s_tag}>\n";
+  }
+  return "\n\$\n" if ($opts->{o_format} eq "NATools");
+}
+
+
+
+
+
+=head2 Acentuação
+
+=over 4
+
+=item remove_accents
+
+Esta função remove a acentuação do texto passado como parâmetro
+
+=item has_accents
+
+Esta função verifica se o texto passado como parâmetro tem caracteres acentuados
+
+=back
+
+=cut
+
+sub has_accents {
+  my $word = shift;
+  if ($word =~ m![çáéíóúàèìòùãõâêîôûäëïöüñ]!i) {
+    return 1
+  } else {
+    return 0
+  }
+}
+
+sub remove_accents {
+  my $word = shift;
+  $word =~ tr/çáéíóúàèìòùãõâêîôûäëïöüñ/caeiouaeiouaoaeiouaeioun/;
+  $word =~ tr/ÇÁÉÍÓÚÀÈÌÒÙÃÕÂÊÎÔÛÄËÏÖÜÑ/CAEIOUAEIOUAOAEIOUAEIOUN/;
+  return $word;
+}
+
+
+
+
+
+### ---------- OSLO --------
 
 sub tokeniza {
   my $par = shift;
@@ -261,37 +755,6 @@ sub tokeniza {
   }
 }
 
-
-
-
-sub frases { _sentences(@_) }
-sub _sentences{
-  my $terminador='([.?!;]+[»]?|<[pP]\b.*?>|<br>|\n\n+|:[\s\n](?=[-«"][A-Z]))';
-
-  my @r;
-  my $MARCA = "\0x01";
-  my $par = shift;
-  for ($par) {
-    s!($protect)!          _savit($1)!xge;
-    s!\b(($abrev)\.)!      _savit($1)!ige;
-    s!\b(\w+(º|ª)\.)!      _savit($1)!ige;
-    s!\b(([A-Z])\.)!       _savit($1)!gie;  # este à parte para não apanhar minúlculas (s///i)
-    s!($terminador)!$1$MARCA!g;
-    $_ = _loadit($_);
-    @r = split(/$MARCA/,$_);
-  }
-  if (@r && $r[-1] =~ /^\s*$/s) {
-    pop(@r)
-  }
-  return map { _trim($_) } @r;
-}
-
-sub _trim {
-  my $x = shift;
-  $x =~ s/^[\n\r\s]+//;
-  $x =~ s/[\n\r\s]+$//;
-  return $x;
-}
 
 
 sub tratar_pontuacao_interna {
@@ -730,385 +1193,9 @@ sub recupera_ortografia_certa {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-sub fsentences {
-  my %opts = (
-	      o_format => 'XML',
-	      s_tag    => 's',
-	      s_num    => '1',
-	      s_last   => '',
-
-	      p_tag    => 'p',
-	      p_num    => '1',
-	      p_last   => '',
-
-	      t_tag    => 'text',
-	      t_num    => 'f',
-	      t_last   => '',
-
-	      tokenize => 0,
-
-	      output   => \*STDOUT,
-	      input_p_sep => '',
-	     );
-
-  %opts = (%opts, %{shift()}) if ref($_[0]) eq "HASH";
-
-
-  my @files = @_;
-  @files = (\*STDIN) unless @files;
-
-  my $oldselect;
-  if (!ref($opts{output})) {
-    open OUT, ">$opts{output}" or die("Cannot open file for writting: $!\n");
-    $oldselect = select OUT;
-  }
-
-  for my $file (@files) {
-    my $fh;
-    if (ref($file)) {
-      $fh = $file;
-    } else {
-      open $fh, $file or die("Cannot open file $file:$!\n");
-      print _open_t_tag(\%opts, $file);
-    }
-
-    my $par;
-    local $/ = $opts{input_p_sep};
-    while ($par = <$fh>) {
-      print _open_p_tag(\%opts);
-
-      chomp($par);
-
-      for my $s (_sentences($par)) {
-	print _open_s_tag(\%opts), _clean(\%opts,$s), _close_s_tag(\%opts);
-      }
-
-      print _close_p_tag(\%opts);
-    }
-
-
-    unless (ref($file)) {
-      print _close_t_tag(\%opts);
-      close $fh
-    }
-
-  }
-
-  if (!ref($opts{output})) {
-    select $oldselect;
-  }
-
-}
-
-sub _clean {
-  my $opts = shift;
-  my $str = shift;
-
-  if ($opts->{tokenize}) {
-    $str = join(" ", atomiza($str))
-  } else {
-    $str =~ s/\s+/ /g;
-  }
-  return $str;
-}
-
-sub _open_t_tag {
-  my $opts = shift;
-  my $file = shift || "";
-  if ($opts->{o_format} eq "XML" &&
-      $opts->{t_tag}) {
-    if ($opts->{t_num} eq 0) {
-      return "<$opts->{t_tag}>\n";
-    } elsif ($opts->{t_num} eq 'f') {
-      $opts->{t_last} = $file;
-      $opts->{p_last} = 0;
-      $opts->{s_last} = 0;
-      return "<$opts->{t_tag} file=\"$file\">\n";
-    } else {
-      ## t_num = 1 :-)
-      ++$opts->{t_last};
-      $opts->{p_last} = 0;
-      $opts->{s_last} = 0;
-      return "<$opts->{t_tag} id=\"$opts->{t_last}\">\n";
-    }
-  }
-  return "" if ($opts->{o_format} eq "NATools");
-}
-
-sub _close_t_tag {
-  my $opts = shift;
-  my $file = shift || "";
-  if ($opts->{o_format} eq "XML" &&
-      $opts->{t_tag}) {
-    return "</$opts->{t_tag}>\n";
-  }
-  return "" if ($opts->{o_format} eq "NATools");
-}
-
-sub _open_p_tag {
-  my $opts = shift;
-
-  if ($opts->{o_format} eq "XML" &&
-      $opts->{p_tag}) {
-    if ($opts->{p_num} == 0) {
-      return "<$opts->{p_tag}>\n";
-    } elsif ($opts->{p_num} == 1) {
-      ++$opts->{p_last};
-      $opts->{s_last} = 0;
-      return "<$opts->{p_tag} id=\"$opts->{p_last}\">\n";
-    } else {
-      ## p_num = 2
-      ++$opts->{p_last};
-      $opts->{s_last} = 0;
-      return "<$opts->{p_tag} id=\"$opts->{t_last}.$opts->{p_last}\">\n";
-    }
-  }
-  return "" if ($opts->{o_format} eq "NATools");
-}
-
-sub _close_p_tag {
-  my $opts = shift;
-  my $file = shift || "";
-  if ($opts->{o_format} eq "XML" &&
-      $opts->{p_tag}) {
-    return "</$opts->{p_tag}>\n";
-  }
-  return "" if ($opts->{o_format} eq "NATools");
-}
-
-
-sub _open_s_tag {
-  my $opts = shift;
-
-  if ($opts->{o_format} eq "XML" &&
-      $opts->{s_tag}) {
-    if ($opts->{s_num} == 0) {
-      return "<$opts->{s_tag}>";
-    } elsif ($opts->{s_num} == 1) {
-      ++$opts->{s_last};
-      return "<$opts->{s_tag} id=\"$opts->{s_last}\">";
-
-    } elsif ($opts->{s_num} == 2) {
-      ++$opts->{s_last};
-      return "<$opts->{s_tag} id=\"$opts->{p_last}.$opts->{s_last}\">";
-
-    } else {
-      ## p_num = 3
-      ++$opts->{s_last};
-      return "<$opts->{s_tag} id=\"$opts->{t_last}.$opts->{p_last}.$opts->{s_last}\">";
-    }
-  }
-  return "" if ($opts->{o_format} eq "NATools");
-}
-
-sub _close_s_tag {
-  my $opts = shift;
-  my $file = shift || "";
-  if ($opts->{o_format} eq "XML" &&
-      $opts->{s_tag}) {
-    return "</$opts->{s_tag}>\n";
-  }
-  return "\n\$\n" if ($opts->{o_format} eq "NATools");
-}
-
-
-sub has_accents {
-  my $word = shift;
-  if ($word =~ m![çáéíóúàèìòùãõâêîôûäëïöü]!i) {
-    return 1
-  } else {
-    return 0
-  }
-}
-
-sub remove_accents {
-  my $word = shift;
-  $word =~ tr/çáéíóúàèìòùãõâêîôûäëïöü/caeiouaeiouaoaeiouaeiou/;
-  $word =~ tr/ÇÁÉÍÓÚÀÈÌÒÙÃÕÂÊÎÔÛÄËÏÖÜ/CAEIOUAEIOUAOAEIOUAEIOU/;
-  return $word;
-}
-
-
 1;
 __END__
 
-=head1 NAME
-
-Lingua::PT::PLNbase - Perl extension for NLP of the Portuguese
-
-=head1 SYNOPSIS
-
-  use Lingua::PT::PLNbase;
-
-  my @atomos = atomiza($texto);
-  my $atomos_um_por_linha = tokeniza($texto);
-
-  my @frases = frases($texto);
-  my $frases = separa_frases($texto);
-
-
-=head1 DESCRIPTION
-
-=head2 Atomização
-
-Este módulo inclui um método configurável para a atomização de corpus
-na língua portuguesa. No entanto, é possível que possa ser usado para
-outras línguas.
-
-A forma simples de uso do atomizador é usando directamente a função
-C<atomiza> que retorna um texto em que cada linha contém um átomo, ou o
-uso da função C<tokeniza> que contém outra versão de atomizador.
-
-=over 4
-
-=item atomiza
-
-Usa um algorítmo desenvolvido no Projecto Natura.
-
-Para que as aspas não sejam convertidas em I<abrir aspa> e I<fechar
-aspa>, usar a opção de configuração C<keep_quotes>.
-
-=item tokeniza
-
-Usa um algorítmo desenvolvido no Pólo de Oslo da Linguateca
-
-=back
-
-=head2 Segmentação
-
-Este módulo é uma extensão Perl para a segmentação de textos em
-linguagem natural. O objectivo principal será a possibilidade de
-segmentação a vários níveis, no entanto esta primeira versão permite
-apenas a separação em frases (fraseação) usando uma de duas variantes:
-
-=over 4
-
-=item frases
-
-  @frases = frases($texto);
-
-Esta é a implementação do Projecto Natura, que retorna uma lista de
-frases.
-
-=item separa_frases
-
-  $frases = separa_frases($texto);
-
-Esta é a implementação da Linguateca, que retorna um texto com uma
-frase por linha.
-
-=back
-
-Estas duas implementações irão ser testadas e aglomeradas numa única
-que permita ambas as funcionalidades.
-
-=head2 Segmentação a vários níveis
-
-=over 4
-
-=item fsentences
-
-A função C<fsentences> permite segmentar um conjunto de ficheiros a
-vários níveis: por ficheiro, por parágrafo ou por frase. O output pode
-ser realizado em vários formatos e obtendo, ou não, numeração de
-segmentos.
-
-Esta função é invocada com uma referência para um hash de configuração
-e uma lista de ficheiros a processar (no caso de a lista ser vazia,
-irá usar o C<STDIN>).
-
-O resultado do processamento é enviado para o C<STDOUT> a não ser que
-a chave C<output> do hash de configuração esteja definida. Nesse caso,
-o seu valor será usado como ficheiro de resultado.
-
-A chave C<input_p_sep> permite definir o separador de parágrafos. Por
-omissão, é usada uma linha em branco.
-
-A chave C<o_format> define as políticas de etiquetação do
-resultado. De momento, a única política disponível é a C<XML>.
-
-As chaves C<s_tag>, C<p_tag> e C<t_tag> definem as etiquetas a usar,
-na política XML, para etiquetar frases, parágrafos e textos
-(ficheiros), respectivamente. Por omissão, as etiquetas usadas são
-C<s>, C<p> e C<text>.
-
-É possível numerar as etiquetas, definindo as chaves C<s_num>,
-C<p_num> ou C<t_num> da seguinte forma:
-
-=over 4
-
-=item '0'
-
-Nenhuma numeração.
-
-=item 'f'
-
-Só pode ser usado com o C<t_tag>, e define que as etiquetas que
-delimitam ficheiros usará o nome do ficheiro como identificador.
-
-=item '1'
-
-Numeração a um nível. Cada etiqueta terá um contador diferente.
-
-=item '2'
-
-Só pode ser usado com o C<p_tag> ou o C<s_tag> e obriga à numeração a
-dois níveis (N.N).
-
-=item '3'
-
-Só pode ser usado com o C<s_tag> e obriga à numeração a três níveis (N.N.N)
-
-=back
-
-=back
-
-=head2 Acentuação
-
-=over 4
-
-=item remove_accents
-
-Esta função remove a acentuação do texto passado como parâmetro
-
-=item has_accents
-
-Esta função verifica se o texto passado como parâmetro tem caracteres acentuados
-
-=back
 
 =head2 Funções auxiliares
 
@@ -1136,7 +1223,7 @@ Paulo Rocha (paulo.rocha@di.uminho.pt)
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2003-2004 by Linguateca (http://www.linguateca.pt)
+Copyright (C) 2003-2006 by its authors
 
 (EN)
 This library is free software; you can redistribute it and/or modify
@@ -1152,30 +1239,3 @@ tenha disponível.
 =cut
 
 
-
-#
-# outputto
-# inputfrom
-# separator-paragraph-input
-#
-# [DEFAULT] Politica XML --- '<t> <p> <s>' -- 0, Numercao com ou sem reset, N.N, N.N.N
-#                                  (0)                (1)         (2)   (3)
-#
-# nomes das etiquetas (s => 's', p=>'p', t=>'text')
-#
-# t: 0 - nenhuma
-#    1 - numeracao
-#    f - filen^H^Hcheiro [DEFAULT]
-#
-# p: 0 - nenhuma
-#    1 - numeracao 1 nivel [DEFAULT]
-#    2 - numercao 2 niveis (N.N)
-#
-# s: 0 - nenhuma
-#    1 - numeração 1 nível [DEFAULT]
-#    2 - numeração 2 níveis (N.N)
-#    3 - numeração 3 níveis (N.N.N)
-#
-# Politica NATools
-#
-# Politica linha em branco
