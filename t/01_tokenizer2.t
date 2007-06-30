@@ -1,6 +1,6 @@
 # -*- cperl -*-
 
-use Test::More tests => 1 + 21 ;
+use Test::More tests => 1 + 22 ;
 use POSIX qw(locale_h);
 setlocale(LC_CTYPE, "pt_PT");
 

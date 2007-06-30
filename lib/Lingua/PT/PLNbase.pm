@@ -45,7 +45,7 @@ our @EXPORT = qw(
    cqptokens tokenize
 );
 
-our $VERSION = '0.17';
+our $VERSION = '0.18';
 
 our $abrev;
 
@@ -54,6 +54,7 @@ our $terminador = qr{([.?!;]+[\»"']?|<[pP]\b.*?>|<br>|\n\n+|:\s+(?=[-\«"][A-Z]))
 our $protect = qr'
        \#n\d+
     |  \w+\'\w+
+    |  \bn\.o                                    # number
     |  [\w_.-]+ \@ [\w_.-]+\w                    # emails
     |  \w+\.?[ºª°]\.?                            # ordinals
     |  <[^>]*>                                   # markup XML SGML
@@ -131,6 +132,9 @@ sub _tokenizecommon{
     if ($conf->{keep_quotes}) {
       s#\'# \' #g;
     } else {
+      s/^\`/\« /g;
+      s/ \`/ \« /g;
+
       s/^\'/\« /g;
       s/ \'/ \« /g;
       s/\'([ .?!:;,])/ \» $1/g;

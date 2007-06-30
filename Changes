@@ -1,5 +1,9 @@
 Revision history for Perl extension Lingua::PT::PLNbase.
 
+0.18  Sat Jun 30 11:58:00 2007
+	- Added tokenization support for most EN and FR texts
+	- Bug fixes
+
 0.17  Tue Nov 21 12:40:00 2006
 	- Added some functions like xmlsentences and cqptokens
 	- Added some regular expressions on tokenizer
