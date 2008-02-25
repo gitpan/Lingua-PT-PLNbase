@@ -12,7 +12,7 @@ $a = '«·È';
 
 $i = 0;
 SKIP: {
-  skip "not a good locale", 21 unless $a =~ m!^\w{3}$!;
+  skip "not a good locale", 22 unless $a =~ m!^\w{3}$!;
 
   $i++;
   $/ = "\n\n";
@@ -23,7 +23,6 @@ SKIP: {
   while(<T>) {
     chomp($input = <T>);
     chomp($output = <T>);
-
 
     my $tok2 = atomiza($input); # Braga
     is($tok2, $output, "$input");

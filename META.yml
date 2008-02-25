@@ -1,16 +1,16 @@
 --- #YAML:1.0
 name:                Lingua-PT-PLNbase
-version:             0.18
+version:             0.19
 abstract:            Perl extension for NLP of the Portuguese
 license:             ~
-generated_by:        ExtUtils::MakeMaker version 6.32
+author:              
+    - Alberto Simoes <ambs@di.uminho.pt>
+generated_by:        ExtUtils::MakeMaker version 6.43_01
 distribution_type:   module
 requires:     
     Lingua::PT::Abbrev:            0.05
     Test::Pod:                     1
     Test::Pod::Coverage:           0.08
 meta-spec:
-    url:     http://module-build.sourceforge.net/META-spec-v1.2.html
-    version: 1.2
-author:
-    - Alberto Simoes <ambs@di.uminho.pt>
+    url:     http://module-build.sourceforge.net/META-spec-v1.3.html
+    version: 1.3

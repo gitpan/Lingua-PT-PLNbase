@@ -45,7 +45,7 @@ our @EXPORT = qw(
    cqptokens tokenize
 );
 
-our $VERSION = '0.18';
+our $VERSION = '0.19';
 
 our $abrev;
 
@@ -490,10 +490,17 @@ sub _clean {
   my $str = shift;
 
   if ($opts->{tokenize}) {
-    $str = join(" ", atomiza($str))
+      if ($opts->{tokenize} eq "cqp") {
+          $str = "\n".join("\n", atomiza($str))."\n"
+      } else {
+          $str = join(" ", atomiza($str))
+      }
   } else {
     $str =~ s/\s+/ /g;
   }
+  $str =~ s/&/&amp;/g;
+  $str =~ s/>/&gt;/g;
+  $str =~ s/</&lt;/g;
   return $str;
 }
 
