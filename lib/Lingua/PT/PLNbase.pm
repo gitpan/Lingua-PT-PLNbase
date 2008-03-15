@@ -45,7 +45,7 @@ our @EXPORT = qw(
    cqptokens tokenize
 );
 
-our $VERSION = '0.19';
+our $VERSION = '0.20';
 
 our $abrev;
 
@@ -480,6 +480,7 @@ sub fsentences {
   }
 
   if (!ref($opts{output})) {
+    close OUT;
     select $oldselect;
   }
 
