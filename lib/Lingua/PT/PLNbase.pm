@@ -39,13 +39,13 @@ computacional da língua, e em particular, da língua portuguesa.
 
 
 our @EXPORT = qw(
-   atomiza frases separa_frases fsentences
+   atomiza frases separa_frases fsentences atomos
    tokeniza has_accents remove_accents
    xmlsentences sentences
    cqptokens tokenize
 );
 
-our $VERSION = '0.20';
+our $VERSION = '0.21';
 
 our $abrev;
 
@@ -180,6 +180,8 @@ As funções disponíveis:
 
 =over 4
 
+=item atomos
+
 =item atomiza
 
 =item tokenize
@@ -216,9 +218,8 @@ separador de frases (ou de registo) usando a opção 'irs':
 
 =cut
 
-sub atomiza {
-  return tokenize(@_);
-}
+sub atomos  { tokenize(@_) }
+sub atomiza { tokenize(@_) }
 
 sub tokenize{
   my $conf = { rs => "\n" };

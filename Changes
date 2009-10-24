@@ -1,5 +1,8 @@
 Revision history for Perl extension Lingua::PT::PLNbase.
 
+0.21  Sat Oct 24 21:58:00 2009
+       - Added 'atomos' function alias to 'atomiza'
+
 0.20  Sat Mar 15 14:50:00 2008
 	- Added documentation the 'sentences' command
 	- close output file on 'fsentences' function to flush filehandle
