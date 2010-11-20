@@ -1,5 +1,9 @@
 Revision history for Perl extension Lingua::PT::PLNbase.
 
+0.22  Sat Nov 20 13:44:00 2010
+       - Fixed tests not to use external diff command, and to create
+         temporary files.
+
 0.21  Sat Oct 24 21:58:00 2009
        - Added 'atomos' function alias to 'atomiza'
 
