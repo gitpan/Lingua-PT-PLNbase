@@ -6,6 +6,9 @@ WriteMakefile(
 	      NAME              => 'Lingua::PT::PLNbase',
 	      VERSION_FROM      => 'lib/Lingua/PT/PLNbase.pm', # finds $VERSION
 	      EXE_FILES         => [ "scripts/sentences" ],
+              CONFIGURE_REQUIRES => {
+                                     "ExtUtils::MakeMaker" => '6.55',
+                                    },
               BUILD_REQUIRES    => {
 				    'Test::Pod' => '1.00',
 				    'Test::Pod::Coverage' => '0.08',

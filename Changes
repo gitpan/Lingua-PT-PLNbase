@@ -1,5 +1,8 @@
 Revision history for Perl extension Lingua::PT::PLNbase.
 
+0.23  Tue Nov 23 12:32:16 WET 2010
+       - Added missing dependency.
+
 0.22  Sat Nov 20 13:44:00 2010
        - Fixed tests not to use external diff command, and to create
          temporary files.
