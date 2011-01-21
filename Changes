@@ -1,5 +1,8 @@
 Revision history for Perl extension Lingua::PT::PLNbase.
 
+0.24  Fri Jan 21 17:52:32 WET 2011
+      - Added support to unicode on cqptokens function
+
 0.23  Tue Nov 23 12:32:16 WET 2010
        - Added missing dependency.
 

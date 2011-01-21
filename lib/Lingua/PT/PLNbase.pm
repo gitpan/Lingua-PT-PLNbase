@@ -45,7 +45,7 @@ our @EXPORT = qw(
    cqptokens tokenize
 );
 
-our $VERSION = '0.23';
+our $VERSION = '0.24';
 
 our $abrev;
 
@@ -203,7 +203,7 @@ dos átomos.
 
 =item tokeniza
 
-Usa um algorítmo desenvolvido no Pólo de Oslo da Linguateca. Retorna
+Usa um algoritmo desenvolvido no Pólo de Oslo da Linguateca. Retorna
 um átomo por linha em contexto escalar, e uma lista de átomos em
 contexto de lista.
 
@@ -213,6 +213,11 @@ Um átomo por linha de acordo com notação CWB. Pode ser alterado o
 separador de frases (ou de registo) usando a opção 'irs':
 
    cqptokens( { irs => "\n\n" }, "file" );
+
+outras opções:
+
+   cqptokens( { enc => ":utf8"}, "file" ); # enc => charset
+                                           # outenc => charset
 
 =back
 
@@ -243,7 +248,9 @@ sub tokenize{
 }
 
 sub cqptokens{        ## 
-  my %opt = ( irs => ">"); # irs => INPUT RECORD SEPARATOR
+  my %opt = ( irs => ">"); # irs => INPUT RECORD SEPARATOR; 
+                           # enc => charset
+                           # outenc => charset
   if(ref($_[0]) eq "HASH"){ %opt = (%opt , %{shift(@_)});}
   my $file = shift || "-";
 
@@ -251,6 +258,8 @@ sub cqptokens{        ##
   my %tag=();
   my ($a,$b);
   open(F,"$file");
+  binmode(F,$opt{enc})         if $opt{enc};
+  binmode(STDOUT,$opt{outenc}) if $opt{outenc};
   while(<F>) {
     if(/<(\w+)(.*?)>/){
       ($a, $b) = ($1,$2);

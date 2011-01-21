@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Lingua-PT-PLNbase
-version:            0.23
+version:            0.24
 abstract:           Perl extension for NLP of the Portuguese
 author:
     - Alberto Simoes <ambs@di.uminho.pt>
