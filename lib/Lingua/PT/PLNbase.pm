@@ -11,7 +11,7 @@ our @ISA = qw(Exporter);
 use locale;
 
 
-
+=encoding UTF-8
 
 =head1 NAME
 
@@ -45,7 +45,7 @@ our @EXPORT = qw(
    cqptokens tokenize
 );
 
-our $VERSION = '0.24';
+our $VERSION = '0.25';
 
 our $abrev;
 
@@ -57,7 +57,8 @@ our $protect = qr'
     |  \bn\.o                                    # number
     |  [\w_.-]+ \@ [\w_.-]+\w                    # emails
     |  \w+\.?[ºª°]\.?                            # ordinals
-    |  <[^>]*>                                   # markup XML SGML
+    |  <\s*[A-Za-z:]+(?:\s+[A-Za-z:]+=(?:([\'"])[^\'"]+\1)|\w+)*\s*\/?\s*>  # markup open XML SGML
+    |  </\s*[A-Za-z:]+\s*>                       # markup close XML SGML
     |  \d+(?:\/\d+)+                             # dates or similar 12/21/1
     |  \d+(?:[.,]\d+)+%?                         # numbers
     |  \d+(?:\.[oa])+                            # ordinals numbers  12.o

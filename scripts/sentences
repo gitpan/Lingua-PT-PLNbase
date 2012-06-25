@@ -43,6 +43,8 @@ sub print_usage {
 
 __END__
 
+=encoding UTF-8
+
 =head1 NAME
 
 sentences - Command line tool for text segmentation, tokenization and annotation
