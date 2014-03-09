@@ -1,5 +1,14 @@
 Revision history for Perl extension Lingua::PT::PLNbase.
 
+0.26  Sun Mar  9 21:38:49 WET 2014
+      - protection of bookcleaner markup "_sec:..._"
+      - PLNbase is now written in UTF-8
+      - try to choose setlocale(LC_CTYPE, "pt_PT|pt_BR|???") to be
+          less dependent of present LC_CTYPE.
+      - fix a bug related with xml tags tokenizing in "cqptokens"
+      - incorporated lots of new rules for syllable division
+        (thanks to João Machado, from P-Pal project)
+
 0.25  Mon Jun 25 10:58:35 WEST 2012
       - Pod encoding fixes
 

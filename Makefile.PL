@@ -12,6 +12,7 @@ WriteMakefile(
               BUILD_REQUIRES    => {
 				    'Test::Pod' => '1.00',
 				    'Test::Pod::Coverage' => '0.08',
+				    'Lingua::PT::Abbrev' => '0.05',
                                     'File::Temp' => 0,
                                     'File::Slurp' => 0,
                                    },

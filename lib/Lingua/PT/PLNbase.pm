@@ -8,7 +8,13 @@ use Lingua::PT::Abbrev;
 
 require Exporter;
 our @ISA = qw(Exporter);
+
+use POSIX qw(locale_h);
+my $llang = setlocale(LC_CTYPE, "pt_PT");
+$llang    = setlocale(LC_CTYPE, "pt_BR") unless $llang;
 use locale;
+
+use utf8;
 
 
 =encoding UTF-8
@@ -31,8 +37,8 @@ Lingua::PT::PLNbase - Perl extension for NLP of the Portuguese
 
 =head1 DESCRIPTION
 
-Este módulo inclui funções básicas úteis ao processamento
-computacional da língua, e em particular, da língua portuguesa.
+Este mÃ³dulo inclui funÃ§Ãµes bÃ¡sicas Ãºteis ao processamento
+computacional da lÃ­ngua, e em particular, da lÃ­ngua portuguesa.
 
 =cut
 
@@ -45,20 +51,28 @@ our @EXPORT = qw(
    cqptokens tokenize
 );
 
-our $VERSION = '0.25';
+our $VERSION = '0.26';
 
 our $abrev;
 
-our $terminador = qr{([.?!;]+[\»"']?|<[pP]\b.*?>|<br>|\n\n+|:\s+(?=[-\«"][A-Z]))};
+our $terminador = qr{([.?!;]+[\Â»"'â€â€™]?|<[pP]\b.*?>|<br>|\n\n+|:\s+(?=[-\Â«"â€œâ€˜][A-Z]))};
 
-our $protect = qr'
+our $protect = qr!
        \#n\d+
-    |  \w+\'\w+
+    |  \w+['â€™]\w+
     |  \bn\.o                                    # number
     |  [\w_.-]+ \@ [\w_.-]+\w                    # emails
-    |  \w+\.?[ºª°]\.?                            # ordinals
-    |  <\s*[A-Za-z:]+(?:\s+[A-Za-z:]+=(?:([\'"])[^\'"]+\1)|\w+)*\s*\/?\s*>  # markup open XML SGML
-    |  </\s*[A-Za-z:]+\s*>                       # markup close XML SGML
+    |  \w+\.?[ÂºÂªÂ°]\.?                            # ordinals
+    |  _sec[:+].*?_                              # section marks from bookclean
+    |  <[A-Za-z](?:\w|:)*                        # <tag
+         (?:\s+
+            [A-Za-z:0-9]+=                       #   at='v'
+               (?: '[^']+'
+               |   "[^"]+")
+         )*
+         \s*/?\s*
+       >                                         # markup open XML SGML
+    |  </\s*[A-Za-z0-9:]+\s*>                    # markup close XML SGML
     |  \d+(?:\/\d+)+                             # dates or similar 12/21/1
     |  \d+(?:[.,]\d+)+%?                         # numbers
     |  \d+(?:\.[oa])+                            # ordinals numbers  12.o
@@ -66,10 +80,10 @@ our $protect = qr'
     |  (?:\&\w+\;)                               # entidades XML HTML
     |  ((https?|ftp|gopher)://|www)[\w_./~:-]+\w # urls
     |  \w+\.(?:com|org|net|pt)                   # simplified urls
-    |  \w+(-\w+)+                                # dá-lo-à
+    |  \w+(-\w+)+                                # dÃ¡-lo-Ã 
     |  \\\\unicode\{\d+\}                        # unicode...
     |  \w+\.(?:exe|html?|zip|jpg|gif|wav|mp3|png|t?gz|pl|xml) # filenames
-'x;
+!x;
 
 
 our ($savit_n, %savit_p);
@@ -121,38 +135,38 @@ sub _tokenizecommon{
     if ($conf->{keep_quotes}) {
       s#\"# \" #g;
     } else {
-      s/^\"/\« /g;
-      s/ \"/ \« /g;
-      s/\"([ .?!:;,])/ \» $1/g;
-      s/\"$/ \»/g;
+      s/^\"/\Â« /g;
+      s/ \"/ \Â« /g;
+      s/\"([ .?!:;,])/ \Â» $1/g;
+      s/\"$/ \Â»/g;
     }
 
-    s!(\w)('(s|ld|nt|ll|m|t|re))\b!"$1 " . _savit($2)!ge;  # I 'm we 're can 't
+    s!(\w)(['â€™](s|ld|nt|ll|m|t|re))\b!"$1 " . _savit($2)!ge;  # I 'm we 're can 't
     s!([[:alpha:]]+')(\w)!         _savit($1) . " $2"!ge;
 
     if ($conf->{keep_quotes}) {
       s#\'# \' #g;
     } else {
-      s/^\`/\« /g;
-      s/ \`/ \« /g;
+      s/^\`/\Â« /g;
+      s/ \`/ \Â« /g;
 
-      s/^\'/\« /g;
-      s/ \'/ \« /g;
-      s/\'([ .?!:;,])/ \» $1/g;
-      s/\'$/ \»/g;
+      s/^\'/\Â« /g;
+      s/ \'/ \Â« /g;
+      s/\'([ .?!:;,])/ \Â» $1/g;
+      s/\'$/ \Â»/g;
     }
 
     s!($protect)!      _savit($1)!xge;
     s!\b((([A-Z])\.)+)!_savit($1)!gie;
 
-    s!([\»\]])!$1 !g; # » | ]
-    s!([\«\[])! $1!g;
+    s!([\Â»\]])!$1 !g; # Â» | ]
+    s!([\Â«\[])! $1!g;
 
     s/(\s*\b\s*|\s+)/\n/g;
 
     # s/(.)\n-\n/$1-/g;
     s/\n+/\n/g;
-    s/\n(\.?[ºª°])\b/$1/g;
+    s/\n(\.?[ÂºÂªÂ°])\b/$1/g;
 
 
     s#\n($abrev)\n\.\n#\n$1\.\n#ig;
@@ -169,15 +183,15 @@ sub _tokenizecommon{
 
 =head2 Atomizadores
 
-Este módulo inclui um método configurável para a atomização de corpus
-na língua portuguesa. No entanto, é possível que possa ser usado para
-outras línguas (especialmente inglês e francês.
+Este mÃ³dulo inclui um mÃ©todo configurÃ¡vel para a atomizaÃ§Ã£o de corpus
+na lÃ­ngua portuguesa. No entanto, Ã© possÃ­vel que possa ser usado para
+outras lÃ­nguas (especialmente inglÃªs e francÃªs.
 
-A forma simples de uso do atomizador é usando directamente a função
-C<atomiza> que retorna um texto em que cada linha contém um átomo (ou
-o uso da função C<tokeniza> que contém outra versão de atomizador).
+A forma simples de uso do atomizador Ã© usando directamente a funÃ§Ã£o
+C<atomiza> que retorna um texto em que cada linha contÃ©m um Ã¡tomo (ou
+o uso da funÃ§Ã£o C<tokeniza> que contÃ©m outra versÃ£o de atomizador).
 
-As funções disponíveis:
+As funÃ§Ãµes disponÃ­veis:
 
 =over 4
 
@@ -187,14 +201,14 @@ As funções disponíveis:
 
 =item tokenize
 
-Usa um algorítmo desenvolvido no Projecto Natura.
+Usa um algorÃ­tmo desenvolvido no Projecto Natura.
 
-Para que as aspas não sejam convertidas em I<abrir aspa> e I<fechar
-aspa>, usar a opção de configuração C<keep_quotes>.
+Para que as aspas nÃ£o sejam convertidas em I<abrir aspa> e I<fechar
+aspa>, usar a opÃ§Ã£o de configuraÃ§Ã£o C<keep_quotes>.
 
 Retorna texto tokenizado, um por linha (a nao ser que o 'record
 separator' (rs) seja redefenido). Em ambiente lista, retorna a lista
-dos átomos.
+dos Ã¡tomos.
 
   my @atomos = atomiza($texto);   # tb chamada 'tokenize'
 
@@ -204,18 +218,18 @@ dos átomos.
 
 =item tokeniza
 
-Usa um algoritmo desenvolvido no Pólo de Oslo da Linguateca. Retorna
-um átomo por linha em contexto escalar, e uma lista de átomos em
+Usa um algoritmo desenvolvido no PÃ³lo de Oslo da Linguateca. Retorna
+um Ã¡tomo por linha em contexto escalar, e uma lista de Ã¡tomos em
 contexto de lista.
 
 =item cqptokens
 
-Um átomo por linha de acordo com notação CWB. Pode ser alterado o
-separador de frases (ou de registo) usando a opção 'irs':
+Um Ã¡tomo por linha de acordo com notaÃ§Ã£o CWB. Pode ser alterado o
+separador de frases (ou de registo) usando a opÃ§Ã£o 'irs':
 
    cqptokens( { irs => "\n\n" }, "file" );
 
-outras opções:
+outras opÃ§Ãµes:
 
    cqptokens( { enc => ":utf8"}, "file" ); # enc => charset
                                            # outenc => charset
@@ -276,10 +290,10 @@ sub cqptokens{        ##
 
 =head2 Segmentadores
 
-Este módulo é uma extensão Perl para a segmentação de textos em
-linguagem natural. O objectivo principal será a possibilidade de
-segmentação a vários níveis, no entanto esta primeira versão permite
-apenas a separação em frases (fraseação) usando uma de duas variantes:
+Este mÃ³dulo Ã© uma extensÃ£o Perl para a segmentaÃ§Ã£o de textos em
+linguagem natural. O objectivo principal serÃ¡ a possibilidade de
+segmentaÃ§Ã£o a vÃ¡rios nÃ­veis, no entanto esta primeira versÃ£o permite
+apenas a separaÃ§Ã£o em frases (fraseaÃ§Ã£o) usando uma de duas variantes:
 
 =over 4
 
@@ -289,21 +303,21 @@ apenas a separação em frases (fraseação) usando uma de duas variantes:
 
   @frases = frases($texto);
 
-Esta é a implementação do Projecto Natura, que retorna uma lista de
+Esta Ã© a implementaÃ§Ã£o do Projecto Natura, que retorna uma lista de
 frases.
 
 =item C<separa_frases>
 
   $frases = separa_frases($texto);
 
-Esta é a implementação da Linguateca, que retorna um texto com uma
+Esta Ã© a implementaÃ§Ã£o da Linguateca, que retorna um texto com uma
 frase por linha.
 
 =item C<xmlsentences>
 
-Utiliza o método C<frases> e aplica uma etiqueta XML a cada frase. Por omissão,
-as frases são ladeadas por '<s>' e '</s>'. O nome da etiqueta pode ser
-substituído usando o parametro opcional C<st>.
+Utiliza o mÃ©todo C<frases> e aplica uma etiqueta XML a cada frase. Por omissÃ£o,
+as frases sÃ£o ladeadas por '<s>' e '</s>'. O nome da etiqueta pode ser
+substituÃ­do usando o parametro opcional C<st>.
 
   xmlsentences({st=> "tag"}, text)
 
@@ -328,7 +342,7 @@ sub sentences{
   for ($par) {
     s!($protect)!          _savit($1)!xge;
     s!\b(($abrev)\.)!      _savit($1)!ige;
-    s!\b(([A-Z])\.)!       _savit($1)!gie;  # este à parte para não apanhar minúlculas (s///i)
+    s!\b(([A-Z])\.)!       _savit($1)!gie;  # este Ã  parte para nÃ£o apanhar minÃºlculas (s///i)
     s!($terminador)!$1$MARCA!g;
     $_ = _loadit($_);
     @r = split(/$MARCA/,$_);
@@ -347,62 +361,62 @@ sub _trim {
 }
 
 
-=head2 Segmentação a vários níveis
+=head2 SegmentaÃ§Ã£o a vÃ¡rios nÃ­veis
 
 =over 4
 
 =item fsentences
 
-A função C<fsentences> permite segmentar um conjunto de ficheiros a
-vários níveis: por ficheiro, por parágrafo ou por frase. O output pode
-ser realizado em vários formatos e obtendo, ou não, numeração de
+A funÃ§Ã£o C<fsentences> permite segmentar um conjunto de ficheiros a
+vÃ¡rios nÃ­veis: por ficheiro, por parÃ¡grafo ou por frase. O output pode
+ser realizado em vÃ¡rios formatos e obtendo, ou nÃ£o, numeraÃ§Ã£o de
 segmentos.
 
-Esta função é invocada com uma referência para um hash de configuração
+Esta funÃ§Ã£o Ã© invocada com uma referÃªncia para um hash de configuraÃ§Ã£o
 e uma lista de ficheiros a processar (no caso de a lista ser vazia,
-irá usar o C<STDIN>).
+irÃ¡ usar o C<STDIN>).
 
-O resultado do processamento é enviado para o C<STDOUT> a não ser que
-a chave C<output> do hash de configuração esteja definida. Nesse caso,
-o seu valor será usado como ficheiro de resultado.
+O resultado do processamento Ã© enviado para o C<STDOUT> a nÃ£o ser que
+a chave C<output> do hash de configuraÃ§Ã£o esteja definida. Nesse caso,
+o seu valor serÃ¡ usado como ficheiro de resultado.
 
-A chave C<input_p_sep> permite definir o separador de parágrafos. Por
-omissão, é usada uma linha em branco.
+A chave C<input_p_sep> permite definir o separador de parÃ¡grafos. Por
+omissÃ£o, Ã© usada uma linha em branco.
 
-A chave C<o_format> define as políticas de etiquetação do
-resultado. De momento, a única política disponível é a C<XML>.
+A chave C<o_format> define as polÃ­ticas de etiquetaÃ§Ã£o do
+resultado. De momento, a Ãºnica polÃ­tica disponÃ­vel Ã© a C<XML>.
 
 As chaves C<s_tag>, C<p_tag> e C<t_tag> definem as etiquetas a usar,
-na política XML, para etiquetar frases, parágrafos e textos
-(ficheiros), respectivamente. Por omissão, as etiquetas usadas são
+na polÃ­tica XML, para etiquetar frases, parÃ¡grafos e textos
+(ficheiros), respectivamente. Por omissÃ£o, as etiquetas usadas sÃ£o
 C<s>, C<p> e C<text>.
 
-É possível numerar as etiquetas, definindo as chaves C<s_num>,
+Ã‰ possÃ­vel numerar as etiquetas, definindo as chaves C<s_num>,
 C<p_num> ou C<t_num> da seguinte forma:
 
 =over 4
 
 =item '0'
 
-Nenhuma numeração.
+Nenhuma numeraÃ§Ã£o.
 
 =item 'f'
 
-Só pode ser usado com o C<t_tag>, e define que as etiquetas que
-delimitam ficheiros usará o nome do ficheiro como identificador.
+SÃ³ pode ser usado com o C<t_tag>, e define que as etiquetas que
+delimitam ficheiros usarÃ¡ o nome do ficheiro como identificador.
 
 =item '1'
 
-Numeração a um nível. Cada etiqueta terá um contador diferente.
+NumeraÃ§Ã£o a um nÃ­vel. Cada etiqueta terÃ¡ um contador diferente.
 
 =item '2'
 
-Só pode ser usado com o C<p_tag> ou o C<s_tag> e obriga à numeração a
-dois níveis (N.N).
+SÃ³ pode ser usado com o C<p_tag> ou o C<s_tag> e obriga Ã  numeraÃ§Ã£o a
+dois nÃ­veis (N.N).
 
 =item '3'
 
-Só pode ser usado com o C<s_tag> e obriga à numeração a três níveis (N.N.N)
+SÃ³ pode ser usado com o C<s_tag> e obriga Ã  numeraÃ§Ã£o a trÃªs nÃ­veis (N.N.N)
 
 =back
 
@@ -420,9 +434,9 @@ Só pode ser usado com o C<s_tag> e obriga à numeração a três níveis (N.N.N)
     2 - numercao 2 niveis (N.N)
 
  s: 0 - nenhuma
-    1 - numeração 1 nível [DEFAULT]
-    2 - numeração 2 níveis (N.N)
-    3 - numeração 3 níveis (N.N.N)
+    1 - numeraÃ§Ã£o 1 nÃ­vel [DEFAULT]
+    2 - numeraÃ§Ã£o 2 nÃ­veis (N.N)
+    3 - numeraÃ§Ã£o 3 nÃ­veis (N.N.N)
 
 =cut
 
@@ -619,17 +633,17 @@ sub _close_s_tag {
 
 
 
-=head2 Acentuação
+=head2 AcentuaÃ§Ã£o
 
 =over 4
 
 =item remove_accents
 
-Esta função remove a acentuação do texto passado como parâmetro
+Esta funÃ§Ã£o remove a acentuaÃ§Ã£o do texto passado como parÃ¢metro
 
 =item has_accents
 
-Esta função verifica se o texto passado como parâmetro tem caracteres acentuados
+Esta funÃ§Ã£o verifica se o texto passado como parÃ¢metro tem caracteres acentuados
 
 =back
 
@@ -637,7 +651,7 @@ Esta função verifica se o texto passado como parâmetro tem caracteres acentuados
 
 sub has_accents {
   my $word = shift;
-  if ($word =~ m![çáéíóúàèìòùãõâêîôûäëïöüñ]!i) {
+  if ($word =~ m![Ã§Ã¡Ã©Ã­Ã³ÃºÃ Ã¨Ã¬Ã²Ã¹Ã£ÃµÃ¢ÃªÃ®Ã´Ã»Ã¤Ã«Ã¯Ã¶Ã¼Ã±]!i) {
     return 1
   } else {
     return 0
@@ -646,8 +660,8 @@ sub has_accents {
 
 sub remove_accents {
   my $word = shift;
-  $word =~ tr/çáéíóúàèìòùãõâêîôûäëïöüñ/caeiouaeiouaoaeiouaeioun/;
-  $word =~ tr/ÇÁÉÍÓÚÀÈÌÒÙÃÕÂÊÎÔÛÄËÏÖÜÑ/CAEIOUAEIOUAOAEIOUAEIOUN/;
+  $word =~ tr/Ã§Ã¡Ã©Ã­Ã³ÃºÃ Ã¨Ã¬Ã²Ã¹Ã£ÃµÃ¢ÃªÃ®Ã´Ã»Ã¤Ã«Ã¯Ã¶Ã¼Ã±/caeiouaeiouaoaeiouaeioun/;
+  $word =~ tr/Ã‡ÃÃ‰ÃÃ“ÃšÃ€ÃˆÃŒÃ’Ã™ÃƒÃ•Ã‚ÃŠÃÃ”Ã›Ã„Ã‹ÃÃ–ÃœÃ‘/CAEIOUAEIOUAOAEIOUAEIOUN/;
   return $word;
 }
 
@@ -662,85 +676,85 @@ sub tokeniza {
 
   for ($par) {
     s/([!?]+)/ $1/g;
-    s/([.,;\»´])/ $1/g;
+    s/([.,;\Â»Â´])/ $1/g;
 
-    # separa os dois pontos só se não entre números 9:30...
+    # separa os dois pontos sÃ³ se nÃ£o entre nÃºmeros 9:30...
     s/:([^0-9])/ :$1/g;
 
-    # separa os dois pontos só se não entre números e não for http:/...
+    # separa os dois pontos sÃ³ se nÃ£o entre nÃºmeros e nÃ£o for http:/...
     s/([^0-9]):([^\/])/$1 :$2/g;
 
-    # was s/([«`])/$1 /g; -- mas tava a dar problemas com o emacs :|
+    # was s/([Â«`])/$1 /g; -- mas tava a dar problemas com o emacs :|
     s!([`])!$1 !g;
 
-    # só separa o parêntesis esquerdo quando não engloba números ou asterisco
+    # sÃ³ separa o parÃªntesis esquerdo quando nÃ£o engloba nÃºmeros ou asterisco
     s/\(([^1-9*])/\( $1/g;
 
-    # só separa o parêntesis direito quando não engloba números ou asterisco ou percentagem
+    # sÃ³ separa o parÃªntesis direito quando nÃ£o engloba nÃºmeros ou asterisco ou percentagem
     s/([^0-9*%])\)/$1 \)/g;
 
-    # desfaz a separação dos parênteses para B)
+    # desfaz a separaÃ§Ã£o dos parÃªnteses para B)
     s/> *([A-Za-z]) \)/> $1\)/g;
 
-    # desfaz a separação dos parênteses para (a)
+    # desfaz a separaÃ§Ã£o dos parÃªnteses para (a)
     s/> *\( ([a-z]) \)/> \($1\)/g;
 
-    # separação dos parênteses para ( A4 )
+    # separaÃ§Ã£o dos parÃªnteses para ( A4 )
     s/(\( +[A-Z]+[0-9]+)\)/ $1 \)/g;
 
-    # separa o parêntesis recto esquerdo desde que não [..
-    s/\[([^.§])/[ $1/g;
+    # separa o parÃªntesis recto esquerdo desde que nÃ£o [..
+    s/\[([^.Â§])/[ $1/g;
 
-    # separa o parêntesis recto direito desde que não ..]
-    s/([^.§])\]/$1 ]/g;
+    # separa o parÃªntesis recto direito desde que nÃ£o ..]
+    s/([^.Â§])\]/$1 ]/g;
 
-    # separa as reticências só se não dentro de [...]
-    s/([^[])§/$1 §/g;
+    # separa as reticÃªncias sÃ³ se nÃ£o dentro de [...]
+    s/([^[])Â§/$1 Â§/g;
 
-    # desfaz a separação dos http:
+    # desfaz a separaÃ§Ã£o dos http:
     s/http :/http:/g;
 
     # separa as aspas anteriores
-    s/ \"/ \« /g;
+    s/ \"/ \Â« /g;
 
     # separa as aspas anteriores mesmo no inicio
-    s/^\"/ \« /g;
+    s/^\"/ \Â« /g;
 
     # separa as aspas posteriores
-    s/\" / \» /g;
+    s/\" / \Â» /g;
 
     # separa as aspas posteriores mesmo no fim
-    s/\"$/ \»/g;
+    s/\"$/ \Â»/g;
 
-    # trata dos apóstrofes
-    # trata do apóstrofe: só separa se for pelica
+    # trata dos apÃ³strofes
+    # trata do apÃ³strofe: sÃ³ separa se for pelica
     s/([^dDlL])\'([\s\',:.?!])/$1 \'$2/g;
-    # trata do apóstrofe: só separa se for pelica
+    # trata do apÃ³strofe: sÃ³ separa se for pelica
     s/(\S[dDlL])\'([\s\',:.?!])/$1 \'$2/g;
-    # separa d' do resto da palavra "d'amor"... "dest'época"
-    s/([A-ZÊÁÉÍÓÚÀÇÔÕÃÂa-zôõçáéíóúâêàã])\'([A-ZÊÁÉÍÓÚÀÇÔÕÃÂa-zôõçáéíóúâêàã])/$1\' $2/;
+    # separa d' do resto da palavra "d'amor"... "dest'Ã©poca"
+    s/([A-ZÃŠÃÃ‰ÃÃ“ÃšÃ€Ã‡Ã”Ã•ÃƒÃ‚a-zÃ´ÃµÃ§Ã¡Ã©Ã­Ã³ÃºÃ¢ÃªÃ Ã£])\'([A-ZÃŠÃÃ‰ÃÃ“ÃšÃ€Ã‡Ã”Ã•ÃƒÃ‚a-zÃ´ÃµÃ§Ã¡Ã©Ã­Ã³ÃºÃ¢ÃªÃ Ã£])/$1\' $2/;
 
     #Para repor PME's
     s/(\s[A-Z]+)\' s([\s,:.?!])/$1\'s$2/g;
 
-    # isto é para o caso dos apóstrofos não terem sido tratados pelo COMPARA
-    # separa um apóstrofe final usado como inicial
-    s/ '([A-Za-zÁÓÚÉÊÀÂÍ])/ ' $1/g;
-    # separa um apóstrofe final usado como inicial
-    s/^'([A-Za-zÁÓÚÉÊÀÂÍ])/' $1/g;
+    # isto Ã© para o caso dos apÃ³strofos nÃ£o terem sido tratados pelo COMPARA
+    # separa um apÃ³strofe final usado como inicial
+    s/ '([A-Za-zÃÃ“ÃšÃ‰ÃŠÃ€Ã‚Ã])/ ' $1/g;
+    # separa um apÃ³strofe final usado como inicial
+    s/^'([A-Za-zÃÃ“ÃšÃ‰ÃŠÃ€Ã‚Ã])/' $1/g;
 
-    # isto é para o caso dos apóstrofes (plicas) serem os do COMPARA
+    # isto Ã© para o caso dos apÃ³strofes (plicas) serem os do COMPARA
     s/\`([^ ])/\` $1/g;
-    s/([^ ])´/$1 ´/g;
+    s/([^ ])Â´/$1 Â´/g;
 
     # trata dos (1) ou 1)
     # separa casos como Rocha(1) para Rocha (1)
-    s/([a-záéãó])\(([0-9])/$1 \($2/g;
+    s/([a-zÃ¡Ã©Ã£Ã³])\(([0-9])/$1 \($2/g;
     # separa casos como dupla finalidade:1)
     s/:([0-9]\))/ : $1/g;
 
-    # trata dos hífenes
-    # separa casos como (Itália)-Juventus para Itália) -
+    # trata dos hÃ­fenes
+    # separa casos como (ItÃ¡lia)-Juventus para ItÃ¡lia) -
     s/\)\-([A-Z])/\) - $1/g;
     # separa casos como 1-universidade
     s/([0-9]\-)([^0-9\s])/$1 $2/g;
@@ -783,33 +797,33 @@ sub tokeniza {
 sub tratar_pontuacao_interna {
   my $par = shift;
 
-  #    print "Estou no pontuação interna... $par\n";
+  #    print "Estou no pontuaÃ§Ã£o interna... $par\n";
 
   for ($par) {
-    # proteger o §
-    s/§/§§/g;
+    # proteger o Â§
+    s/Â§/Â§Â§/g;
 
-    # tratar das reticências
-    s/\.\.\.+/§/g;
+    # tratar das reticÃªncias
+    s/\.\.\.+/Â§/g;
 
     s/\+/\+\+/g;
 
     # tratar de iniciais seguidas por ponto, eventualmente com
-    # parênteses, no fim de uma frase
+    # parÃªnteses, no fim de uma frase
     s/([A-Z])\. ([A-Z])\.(\s*[])]*\s*)$/$1+ $2+$3 /g;
 
-    # iniciais com espaço no meio...
+    # iniciais com espaÃ§o no meio...
     s/ a\. C\./ a+C+/g;
     s/ d\. C\./ d+C+/g;
 
     # tratar dos pontos nas abreviaturas
-    s/\.º/º+/g;
-    s/º\./+º/g;
-    s/\.ª/+ª/g;
-    s/ª\./ª+/g;
+    s/\.Âº/Âº+/g;
+    s/Âº\./+Âº/g;
+    s/\.Âª/+Âª/g;
+    s/Âª\./Âª+/g;
 
-    #só mudar se não for ambíguo com ponto final
-    s/º\. +([^A-ZÀÁÉÍÓÚÂÊ\«])/º+ $1/g;
+    #sÃ³ mudar se nÃ£o for ambÃ­guo com ponto final
+    s/Âº\. +([^A-ZÃ€ÃÃ‰ÃÃ“ÃšÃ‚ÃŠ\Â«])/Âº+ $1/g;
 
     # formas de tratamento
     s/Ex\./Ex+/g; # Ex.
@@ -871,33 +885,33 @@ sub tratar_pontuacao_interna {
     s/ ca\./ ca+/g;
     s/etc\.([.,;])/etc+$1/g;
     s/etc\.\)([.,;])/etc+)$1/g;
-    s/etc\. --( *[a-záéíóúâêà,])/etc+ --$1/g;
-    s/etc\.(\)*) ([^A-ZÀÁÉÍÓÂÊ])/etc+$1 $2/g;
+    s/etc\. --( *[a-zÃ¡Ã©Ã­Ã³ÃºÃ¢ÃªÃ ,])/etc+ --$1/g;
+    s/etc\.(\)*) ([^A-ZÃ€ÃÃ‰ÃÃ“Ã‚ÃŠ])/etc+$1 $2/g;
     s/ et\. *al\./ et+al+/g;
     s/ al\./ al+/g; # alameda
     s/ q\.b\./ q+b+/g;
     s/ i\.e\./ i+e+/g;
     s/ibid\./ibid+/g;
-    s/ id\./ id+/g; # se calhar é preciso ver se não vem sempre precedido de um (
+    s/ id\./ id+/g; # se calhar Ã© preciso ver se nÃ£o vem sempre precedido de um (
     s/op\.( )*cit\./op+$1cit+/g;
     s/P\.S\./P+S+/g;
 
     # unidades de medida
-    s/([0-9][hm])\. ([^A-ZÀÁÉÍÓÚÂÊ])/$1+ $2/g; # 19h., 24m.
-    s/([0-9][km]m)\. ([^A-ZÀÁÉÍÓÚÂÊ])/$1+ $2/g; # 20km., 24mm.
-    s/([0-9]kms)\. ([^A-ZÀÁÉÍÓÚÂÊ])/$1+ $2/g; # kms. !!
+    s/([0-9][hm])\. ([^A-ZÃ€ÃÃ‰ÃÃ“ÃšÃ‚ÃŠ])/$1+ $2/g; # 19h., 24m.
+    s/([0-9][km]m)\. ([^A-ZÃ€ÃÃ‰ÃÃ“ÃšÃ‚ÃŠ])/$1+ $2/g; # 20km., 24mm.
+    s/([0-9]kms)\. ([^A-ZÃ€ÃÃ‰ÃÃ“ÃšÃ‚ÃŠ])/$1+ $2/g; # kms. !!
     s/(\bm)\./$1+/g; # metros no MINHO
 
     # outros
     s/\(([Oo]rgs*)\.\)/($1+)/g; # (orgs.)
     s/\(([Ee]ds*)\.\)/($1+)/g; # (eds.)
-    s/séc\./séc+/g;
-    s/pág(s*)\./pág$1+/g;
+    s/sÃ©c\./sÃ©c+/g;
+    s/pÃ¡g(s*)\./pÃ¡g$1+/g;
     s/pg\./pg+/g;
     s/pag\./pag+/g;
     s/ ed\./ ed+/g;
     s/Ed\./Ed+/g;
-    s/ sáb\./ sáb+/g;
+    s/ sÃ¡b\./ sÃ¡b+/g;
     s/ dom\./ dom+/g;
     s/ id\./ id+/g;
     s/ min\./ min+/g;
@@ -952,7 +966,7 @@ sub tratar_pontuacao_interna {
     # Abreviaturas francesas
     s/Mme\./Mme+/g;
 
-    # Abreviaturas especiais do Diário do Minho
+    # Abreviaturas especiais do DiÃ¡rio do Minho
     s/ habilit\./ habilit+/g;
     s/Hab\./Hab+/g;
     s/Mot\./Mot+/g;
@@ -982,21 +996,21 @@ sub tratar_pontuacao_interna {
     #	print "SIGLA: $sigla\n";
   }
 
-  # tratar de pares de iniciais ligadas por hífen (à francesa: A.-F.)
+  # tratar de pares de iniciais ligadas por hÃ­fen (Ã  francesa: A.-F.)
   for ($par) {
     s/ ([A-Z])\.\-([A-Z])\. / $1+-$2+ /g;
-    # tratar de iniciais (únicas?) seguidas por ponto
+    # tratar de iniciais (Ãºnicas?) seguidas por ponto
     s/ ([A-Z])\. / $1+ /g;
     # tratar de iniciais seguidas por ponto
     s/^([A-Z])\. /$1+ /g;
-    # tratar de iniciais seguidas por ponto antes de aspas "D. João
+    # tratar de iniciais seguidas por ponto antes de aspas "D. JoÃ£o
     # VI: Um Rei Aclamado"
-    s/([("\«])([A-Z])\. /$1$2+ /g;
+    s/([("\Â«])([A-Z])\. /$1$2+ /g;
   }
 
-  # Tratar dos URLs (e também dos endereços de email)
+  # Tratar dos URLs (e tambÃ©m dos endereÃ§os de email)
   # email= url@url...
-  # aceito endereços seguidos de /hgdha/hdga.html
+  # aceito endereÃ§os seguidos de /hgdha/hdga.html
   #  seguidos de /~hgdha/hdga.html
   #    @urls=($par=~/(?:[a-z][a-z0-9-]*\.)+(?:[a-z]+)(?:\/~*[a-z0-9-]+)*?(?:\/~*[a-z0-9][a-z0-9.-]+)*(?:\/[a-z.]+\?[a-z]+=[a-z0-9-]+(?:\&[a-z]+=[a-z0-9-]+)*)*/gi);
 
@@ -1004,21 +1018,21 @@ sub tratar_pontuacao_interna {
   my $url_antigo;
   foreach my $url (@urls) {
     $url_antigo = $url;
-    $url_antigo =~ s/\./\\./g; # para impedir a substituição de P.o em vez de P\.o
+    $url_antigo =~ s/\./\\./g; # para impedir a substituiÃ§Ã£o de P.o em vez de P\.o
     $url_antigo =~ s/\?/\\?/g;
     $url =~ s/\./+/g;
-    # Se o último ponto está mesmo no fim, não faz parte do URL
+    # Se o Ãºltimo ponto estÃ¡ mesmo no fim, nÃ£o faz parte do URL
     $url =~ s/\+$/./;
-    $url =~ s/\//\/\/\/\//g; # põe quatro ////
+    $url =~ s/\//\/\/\/\//g; # pÃµe quatro ////
     $par =~ s/$url_antigo/$url/;
   }
   # print "Depois de tratar dos URLs: $par\n";
 
   for ($par) {
-    # de qualquer maneira, se for um ponto seguido de uma vírgula, é
+    # de qualquer maneira, se for um ponto seguido de uma vÃ­rgula, Ã©
     # abreviatura...
     s/\. *,/+,/g;
-    # de qualquer maneira, se for um ponto seguido de outro ponto, é
+    # de qualquer maneira, se for um ponto seguido de outro ponto, Ã©
     # abreviatura...
     s/\. *\./+./g;
 
@@ -1027,10 +1041,10 @@ sub tratar_pontuacao_interna {
     s/([0-9]+)\.([0-9]+)/$1_$2/g;
 
     # tratamento de numerais cardinais
-    # - tratar dos números com ponto no início da frase
+    # - tratar dos nÃºmeros com ponto no inÃ­cio da frase
     s/^([0-9]+)\. /$1+ /g;
-    # - tratar dos números com ponto antes de minúsculas
-    s/([0-9]+)\. ([a-záéíóúâêà])/$1+ $2/g;
+    # - tratar dos nÃºmeros com ponto antes de minÃºsculas
+    s/([0-9]+)\. ([a-zÃ¡Ã©Ã­Ã³ÃºÃ¢ÃªÃ ])/$1+ $2/g;
 
     # tratamento de numerais ordinais acabados em .o
     s/([0-9]+)\.([oa]s*) /$1+$2 /g;
@@ -1042,8 +1056,8 @@ sub tratar_pontuacao_interna {
 
     #print "TRATA: $par\n";
 
-    # tratar indicação de horas
-    #   esta é tratada na tokenização - não separando 9:20 em 9 :20
+    # tratar indicaÃ§Ã£o de horas
+    #   esta Ã© tratada na tokenizaÃ§Ã£o - nÃ£o separando 9:20 em 9 :20
   }
   return $par;
 }
@@ -1060,105 +1074,105 @@ sub separa_frases {
 
   for ($par) {
 
-    # primeiro junto os ) e os -- ao caracter anterior de pontuação
-    s/([?!.])\s+\)/$1\)/g; # pôr  "ola? )" para "ola?)"
-    s/([?!.])\s+\-/$1-/g; # pôr  "ola? --" para "ola?--"
-    s/([?!.])\s+§/$1§/g; # pôr  "ola? ..." para "ola?..."
-    s/§\s+\-/$1-/g; # pôr  "ola§ --" para "ola§--"
+    # primeiro junto os ) e os -- ao caracter anterior de pontuaÃ§Ã£o
+    s/([?!.])\s+\)/$1\)/g; # pÃ´r  "ola? )" para "ola?)"
+    s/([?!.])\s+\-/$1-/g; # pÃ´r  "ola? --" para "ola?--"
+    s/([?!.])\s+Â§/$1Â§/g; # pÃ´r  "ola? ..." para "ola?..."
+    s/Â§\s+\-/$1-/g; # pÃ´r  "olaÂ§ --" para "olaÂ§--"
 
-    # junto tb o travessão -- `a pelica '
+    # junto tb o travessÃ£o -- `a pelica '
     s/\-\- \' *$/\-\-\' /;
 
-    # separar esta pontuação, apenas se não for dentro de aspas, ou
-    # seguida por vírgulas ou parênteses o a-z estáo lá para não
+    # separar esta pontuaÃ§Ã£o, apenas se nÃ£o for dentro de aspas, ou
+    # seguida por vÃ­rgulas ou parÃªnteses o a-z estÃ¡o lÃ¡ para nÃ£o
     # separar /asp?id=por ...
-    s/([?!]+)([^-\»'´,§?!)"a-z])/$1.$2/g;
+    s/([?!]+)([^-\Â»'Â´,Â§?!)"a-z])/$1.$2/g;
 
-    # Deixa-se o travessão para depois
+    # Deixa-se o travessÃ£o para depois
     # print "Depois de tratar do ?!: $par";
 
-    # separar as reticências entre parênteses apenas se forem seguidas
-    # de nova frase, e se não começarem uma frase elas próprias
-    s/([\w?!])§([\»"´']*\)) *([A-ZÁÉÍÓÚÀ])/$1§$2.$3/g;
+    # separar as reticÃªncias entre parÃªnteses apenas se forem seguidas
+    # de nova frase, e se nÃ£o comeÃ§arem uma frase elas prÃ³prias
+    s/([\w?!])Â§([\Â»"Â´']*\)) *([A-ZÃÃ‰ÃÃ“ÃšÃ€])/$1Â§$2.$3/g;
 
     # print "Depois de tratar das retic. seguidas de ): $par";
 
-    # separar os pontos antes de parênteses se forem seguidos de nova
+    # separar os pontos antes de parÃªnteses se forem seguidos de nova
     # frase
-    s/([\w])\.([)]) *([A-ZÁÉÍÓÚÀ])/$1 + $2.$3/g;
+    s/([\w])\.([)]) *([A-ZÃÃ‰ÃÃ“ÃšÃ€])/$1 + $2.$3/g;
 
-    # separar os pontos ? e ! antes de parênteses se forem seguidos de
-    # nova frase, possivelmente tb iniciada por abre parênteses ou
-    # travessão
-    s/(\w[?!]+)([)]) *((?:\( |\-\- )*[A-ZÁÉÍÓÚÀ])/$1 $2.$3/g;
+    # separar os pontos ? e ! antes de parÃªnteses se forem seguidos de
+    # nova frase, possivelmente tb iniciada por abre parÃªnteses ou
+    # travessÃ£o
+    s/(\w[?!]+)([)]) *((?:\( |\-\- )*[A-ZÃÃ‰ÃÃ“ÃšÃ€])/$1 $2.$3/g;
 
-    # separar as reticências apenas se forem seguidas de nova frase, e
-    # se não começarem uma frase elas próprias trata também das
-    # reticências antes de aspas
-    s/([\w\d!?])\s*§(["\»'´]*) ([^\»"'a-záéíóúâêà,;?!)])/$1§$2.$3/g;
-    s/([\w\d!?])\s*§(["\»'´]*)\s*$/$1§$2. /g;
+    # separar as reticÃªncias apenas se forem seguidas de nova frase, e
+    # se nÃ£o comeÃ§arem uma frase elas prÃ³prias trata tambÃ©m das
+    # reticÃªncias antes de aspas
+    s/([\w\d!?])\s*Â§(["\Â»'Â´]*) ([^\Â»"'a-zÃ¡Ã©Ã­Ã³ÃºÃ¢ÃªÃ Ã¤Ã«Ã¯Ã¶Ã¼,;?!)])/$1Â§$2.$3/g;
+    s/([\w\d!?])\s*Â§(["\Â»'Â´]*)\s*$/$1Â§$2. /g;
 
     # aqui trata das frases acabadas por aspas, eventualmente tb
-    # fechando parênteses e seguidas por reticências
-    s/([\w!?]["\»'´])§(\)*) ([^\»"a-záéíóúâêà,;?!)])/$1§$2.$3/g;
+    # fechando parÃªnteses e seguidas por reticÃªncias
+    s/([\w!?]["\Â»'Â´])Â§(\)*) ([^\Â»"a-zÃ¡Ã©Ã­Ã³ÃºÃ¢ÃªÃ Ã¤Ã«Ã¯Ã¶Ã¼,;?!)])/$1Â§$2.$3/g;
 
     #print "depois de tratar das reticencias seguidas de nova frase: $par\n";
 
     # tratar dos dois pontos: apenas se seguido por discurso directo
-    # em maiúsculas
-    s/: \«([A-ZÁÉÍÓÚÀ])/:.\«$1/g;
-    s/: (\-\-[ \«]*[A-ZÁÉÍÓÚÀ])/:.$1/g;
+    # em maiÃºsculas
+    s/: \Â«([A-ZÃÃ‰ÃÃ“ÃšÃ€])/:.\Â«$1/g;
+    s/: (\-\-[ \Â«]*[A-ZÃÃ‰ÃÃ“ÃšÃ€])/:.$1/g;
 
-    # tratar dos dois pontos se eles acabam o parágrafo (é preciso pôr
-    # um espaço)
+    # tratar dos dois pontos se eles acabam o parÃ¡grafo (Ã© preciso pÃ´r
+    # um espaÃ§o)
     s/:\s*$/:. /;
 
     # tratar dos pontos antes de aspas
-    s/\.(["\»'´])([^.])/+$1.$2/g;
+    s/\.(["\Â»'Â´])([^.])/+$1.$2/g;
 
     # tratar das aspas quando seguidas de novas aspas
-    s/\»\s*[\«"]/\». \«/g;
+    s/\Â»\s*[\Â«"]/\Â». \Â«/g;
 
-    # tratar de ? e ! seguidos de aspas quando seguidos de maiúscula
-    # eventualmente iniciados por abre parênteses ou por travessão
-    s/([?!])([\»"'´]) ((?:\( |\-\- )*[A-ZÁÉÍÓÚÀÊÂ])/$1$2. $3/g;
+    # tratar de ? e ! seguidos de aspas quando seguidos de maiÃºscula
+    # eventualmente iniciados por abre parÃªnteses ou por travessÃ£o
+    s/([?!])([\Â»"'Â´]) ((?:\( |\-\- )*[A-ZÃÃ‰ÃÃ“ÃšÃ€ÃŠÃ‚])/$1$2. $3/g;
 
-    # separar os pontos ? e ! antes de parênteses e possivelmente
-    # aspas se forem o fim do parágrafo
-    s/(\w[?!]+)([)][\»"'´]*) *$/$1 $2./;
+    # separar os pontos ? e ! antes de parÃªnteses e possivelmente
+    # aspas se forem o fim do parÃ¡grafo
+    s/(\w[?!]+)([)][\Â»"'Â´]*) *$/$1 $2./;
 
     # tratar dos pontos antes de aspas precisamente no fim
-    s/\.([\»"'´])\s*$/+$1. /g;
+    s/\.([\Â»"'Â´])\s*$/+$1. /g;
 
-    # tratar das reticências e outra pontuação antes de aspas ou
+    # tratar das reticÃªncias e outra pontuaÃ§Ã£o antes de aspas ou
     # plicas precisamente no fim
-    s/([!?§])([\»"'´]+)\s*$/$1$2. /g;
+    s/([!?Â§])([\Â»"'Â´]+)\s*$/$1$2. /g;
 
-    #tratar das reticências precisamente no fim
-    s/§\s*$/§. /g;
+    #tratar das reticÃªncias precisamente no fim
+    s/Â§\s*$/Â§. /g;
 
-    # tratar dos pontos antes de parêntesis precisamente no fim
+    # tratar dos pontos antes de parÃªntesis precisamente no fim
     s/\.\)\s*$/+\). /g;
 
     # aqui troco .) por .). ...
     s/\.\)\s/+\). /g;
   }
 
-  # tratar de parágrafos que acabam em letras, números, vírgula ou
+  # tratar de parÃ¡grafos que acabam em letras, nÃºmeros, vÃ­rgula ou
   # "-", chamando-os fragmentos #ALTERACAO
   my $fragmento;
-  if ($par =~/[A-Za-záéíóúêãÁÉÍÓÚÀ0-9\),-][\»\"\'´>]*\s*\)*\s*$/) {
+  if ($par =~/[A-Za-zÃ¡Ã©Ã­Ã³ÃºÃªÃ£ÃÃ‰ÃÃ“ÃšÃ€0-9\),-][\Â»\"\'Â´>]*\s*\)*\s*$/) {
     $fragmento = 1
   }
 
   for ($par) {
-    # se o parágrafo acaba em "+", deve-se juntar "." outra vez.
+    # se o parÃ¡grafo acaba em "+", deve-se juntar "." outra vez.
     s/([^+])\+\s*$/$1+. /;
 
-    # se o parágrafo acaba em abreviatura (+) seguido de aspas ou parêntesis, deve-se juntar "."
-    s/([^+])\+\s*(["\»'´\)])\s*$/$1+$2. /;
+    # se o parÃ¡grafo acaba em abreviatura (+) seguido de aspas ou parÃªntesis, deve-se juntar "."
+    s/([^+])\+\s*(["\Â»'Â´\)])\s*$/$1+$2. /;
 
-    # print "Parágrafo antes da separação: $par";
+    # print "ParÃ¡grafo antes da separaÃ§Ã£o: $par";
   }
 
   my @sentences = split /\./,$par;
@@ -1167,14 +1181,14 @@ sub separa_frases {
   }
 
   my $resultado = "";
-  # para saber em que frase pôr <s frag>
+  # para saber em que frase pÃ´r <s frag>
   my $num_frase_no_paragrafo = 0;
   foreach my $frase (@sentences) {
     $frase = &recupera_ortografia_certa($frase);
 
-    if (($frase=~/[.?!:;][\»"'´]*\s*$/) or
-	($frase=~/[.?!] *\)[\»"'´]*$/)) {
-      # frase normal acabada por pontuação
+    if (($frase=~/[.?!:;][\Â»"'Â´]*\s*$/) or
+	($frase=~/[.?!] *\)[\Â»"'Â´]*$/)) {
+      # frase normal acabada por pontuaÃ§Ã£o
       $resultado .= "<s> $frase </s>\n";
     }
 
@@ -1193,19 +1207,19 @@ sub separa_frases {
 
 
 sub recupera_ortografia_certa {
-  # os sinais literais de + são codificados como "++" para evitar
-  # transformação no ponto, que é o significado do "+"
+  # os sinais literais de + sÃ£o codificados como "++" para evitar
+  # transformaÃ§Ã£o no ponto, que Ã© o significado do "+"
 
   my $par = shift;
 
   for ($par) {
-    s/([^+])\+(?!\+)/$1./g; # um + não seguido por +
+    s/([^+])\+(?!\+)/$1./g; # um + nÃ£o seguido por +
     s/\+\+/+/g;
-    s/^§(?!§)/.../g; # se as reticências começam a frase
-    s/([^§(])§(?!§)\)/$1... \)/g; # porque se juntou no separa_frases 
+    s/^Â§(?!Â§)/.../g; # se as reticÃªncias comeÃ§am a frase
+    s/([^Â§(])Â§(?!Â§)\)/$1... \)/g; # porque se juntou no separa_frases 
     # So nao se faz se for (...) ...
-    s/([^§])§(?!§)/$1.../g; # um § não seguido por §
-    s/§§/§/g;
+    s/([^Â§])Â§(?!Â§)/$1.../g; # um Â§ nÃ£o seguido por Â§
+    s/Â§Â§/Â§/g;
     s/_/./g;
     s/#/,/g;
     s#////#/#g; #passa 4 para 1
@@ -1220,7 +1234,7 @@ sub recupera_ortografia_certa {
 __END__
 
 
-=head2 Funções auxiliares
+=head2 FunÃ§Ãµes auxiliares
 
 =over 4
 
@@ -1240,7 +1254,7 @@ Alberto Simoes (ambs@di.uminho.pt)
 
 Diana Santos (diana.santos@sintef.no)
 
-José João Almeida (jj@di.uminho.pt)
+JosÃ© JoÃ£o Almeida (jj@di.uminho.pt)
 
 Paulo Rocha (paulo.rocha@di.uminho.pt)
 
@@ -1254,10 +1268,10 @@ it under the same terms as Perl itself, either Perl version 5.8.1 or,
 at your option, any later version of Perl 5 you may have available.
 
 (PT)
-Esta biblioteca é software de domínio público; pode redistribuir e/ou
-modificar este módulo nos mesmos termos do próprio Perl, quer seja a
-versão 5.8.1 ou, na sua liberdade, qualquer outra versão do Perl 5 que
-tenha disponível.
+Esta biblioteca Ã© software de domÃ­nio pÃºblico; pode redistribuir e/ou
+modificar este mÃ³dulo nos mesmos termos do prÃ³prio Perl, quer seja a
+versÃ£o 5.8.1 ou, na sua liberdade, qualquer outra versÃ£o do Perl 5 que
+tenha disponÃ­vel.
 
 =cut
 

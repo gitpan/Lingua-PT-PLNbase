@@ -4,14 +4,17 @@ use Test::More tests => 1 + 9;
 
 use POSIX qw(locale_h);
 setlocale(LC_CTYPE, "pt_PT");
+#setlocale(LC_CTYPE, "en_GB");
+use locale;
 
 BEGIN { use_ok( 'Lingua::PT::PLNbase' ); }
 
+use utf8;
+
 #exit;
 
-use locale;
 
-$a = '«·È';
+$a = '√á√°√©';
 
 SKIP: {
   skip "not a good locale", 9 unless $a =~ m!^\w{3}$!;
