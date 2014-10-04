@@ -1,5 +1,8 @@
 Revision history for Perl extension Lingua::PT::PLNbase.
 
+0.27  Sat Oct  4 16:31:05 WEST 2014
+      - localize $_
+
 0.26  Sun Mar  9 21:38:49 WET 2014
       - protection of bookcleaner markup "_sec:..._"
       - PLNbase is now written in UTF-8

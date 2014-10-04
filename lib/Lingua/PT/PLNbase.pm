@@ -51,7 +51,7 @@ our @EXPORT = qw(
    cqptokens tokenize
 );
 
-our $VERSION = '0.26';
+our $VERSION = '0.27';
 
 our $abrev;
 
@@ -76,6 +76,7 @@ our $protect = qr!
     |  \d+(?:\/\d+)+                             # dates or similar 12/21/1
     |  \d+(?:[.,]\d+)+%?                         # numbers
     |  \d+(?:\.[oa])+                            # ordinals numbers  12.o
+    |  (?:\d+\.)+(?=[ ]*[a-z0-9])                # numbers  12. (continuation)
     |  \d+\:\d+(\:\d+)?                          # the time         12:12:2
     |  (?:\&\w+\;)                               # entidades XML HTML
     |  ((https?|ftp|gopher)://|www)[\w_./~:-]+\w # urls
@@ -120,7 +121,7 @@ sub _loadit{
 
 
 
-sub _tokenizecommon{
+sub _tokenizecommon {
   my $conf = { keep_quotes => 0 };
   if (ref($_[0]) eq "HASH") {
     my $c = shift;
@@ -251,6 +252,8 @@ sub tokenize{
     $text = shift;
   }
 
+  die __PACKAGE__ . "::tokenize called with undefined value" unless defined $text;
+
   $result = _tokenizecommon($conf, $text);
   $result =~ s/\n$//g;
 
@@ -275,6 +278,7 @@ sub cqptokens{        ##
   open(F,"$file");
   binmode(F,$opt{enc})         if $opt{enc};
   binmode(STDOUT,$opt{outenc}) if $opt{outenc};
+  local $_;
   while(<F>) {
     if(/<(\w+)(.*?)>/){
       ($a, $b) = ($1,$2);
